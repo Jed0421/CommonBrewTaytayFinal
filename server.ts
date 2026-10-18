@@ -972,7 +972,7 @@ const emailOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: b
 // Helper to send real emails via Nodemailer (Gmail SMTP) or Resend
 async function sendRealEmail(toEmail: string, subject: string, htmlContent: string, textContent?: string): Promise<{ sent: boolean; provider: string; error?: string }> {
   const smtpUser = (process.env.SMTP_USER || 'commonbrewtaytay@gmail.com').trim();
-  const rawPass = process.env.SMTP_PASS || 'xvyk flpc dqwb tfyo';
+  const rawPass = process.env.SMTP_PASS || '';
   const smtpPass = rawPass.replace(/\s+/g, '');
 
   const plainText = textContent || htmlContent.replace(/<[^>]+>/g, '').trim();
