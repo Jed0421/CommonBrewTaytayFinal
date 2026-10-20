@@ -65,7 +65,7 @@ import sodaStrawberryZingImg from '../assets/images/Soda Strawberry Zing.png';
 import ubeLatteImg from '../assets/images/Ube Latte.png';
 import ubeCremeBruleeImg from '../assets/images/Ube Crème Brûlée.png';
 import ubeFrappeImg from '../assets/images/Ube Frappe.png';
-import ubecreamyCoconutImg from '../assets/images/ube Creamy Coconut.png';
+import ubecreamyCoconutImg from '../assets/images/Ube Creamy Coconut.png';
 
 // Series Fallback Images
 import milkteaSeriesImg from '../assets/images/Wintermelon.png';
