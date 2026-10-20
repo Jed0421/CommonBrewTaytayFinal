@@ -1,50 +1,81 @@
-// Individual Product Images
-import wintermelonMilkteaImg from '../assets/images/prod_exact_wintermelon_1787317610496.jpg';
-import brownsugarMilkteaImg from '../assets/images/prod_brownsugar_milktea_1787316402694.jpg';
-import thaiMilkteaImg from '../assets/images/prod_thai_milktea_1787316420300.jpg';
-import cookiesCreamMilkteaImg from '../assets/images/prod_cookies_cream_milktea_1787316436923.jpg';
-import taroMilkteaImg from '../assets/images/prod_taro_milktea_1787316451576.jpg';
+// milktea series images
+import wintermelonMilkteaImg from '../assets/images/Wintermelon.png';
+import brownsugarMilkteaImg from '../assets/images/Brown Sugar.png';
+import thaiMilkteaImg from '../assets/images/Thai.png';
+import cookiesCreamMilkteaImg from '../assets/images/Cookies and Cream.png';
+import taroMilkteaImg from '../assets/images/Taro.png';
+import chocolateMilkteaImg from '../assets/images/Chocolate.png';
+import blackCharcoalMilkteaImg from '../assets/images/Black Charcoal.png';  
 
-import matchaLatteImg from '../assets/images/prod_matcha_latte_1787316472257.jpg';
-import matchaStrawberryImg from '../assets/images/prod_matcha_strawberry_1787316496783.jpg';
-import matchaCremeBruleeImg from '../assets/images/prod_matcha_creme_brulee_1787316510607.jpg';
-import matchaFrappeImg from '../assets/images/prod_matcha_frappe_1787316525396.jpg';
+// Matcha Series Images
+import matchaLatteImg from '../assets/images/Matcha Latte.png';
+import matchaStrawberryImg from '../assets/images/Matcha Strawberry Latte.png';
+import matchaCremeBruleeImg from '../assets/images/Matcha Crème Brulee.png';
+import matchaCreamyCoconut from '../assets/images/Matcha Creamy Coconut.png';
+import matchaFrappeImg from '../assets/images/Matcha Frappe.png';
+import matchastrawberryFrappeImg from '../assets/images/Matcha Strawberry Frappe.png';
 
-import spanishLatteImg from '../assets/images/prod_spanish_latte_1787316555735.jpg';
-import caramelMacchiatoImg from '../assets/images/prod_caramel_macchiato_1787316575040.jpg';
-import seaSaltLatteImg from '../assets/images/prod_sea_salt_latte_1787316592366.jpg';
-import hotCappuccinoImg from '../assets/images/prod_hot_cappuccino_1787316758297.jpg';
+// Iced Coffee Series Images
+import icedSpanishLatteImg from '../assets/images/Iced Spanish Latte.png';
+import icedCaramelCoffeeImg from '../assets/images/Iced Caramel.png';
+import icedSaltedCaramelCoffeeImg from '../assets/images/Iced Salted Caramel.png';
+import icedHazelnutCoffeeImg from '../assets/images/Iced Hazelnut.png';
+import icedAmericanoImg from '../assets/images/Iced Americano.png';
+import icedChocolateCoffeeImg from '../assets/images/Iced Chocolate.png';
+import icedFrenchVanillaCoffeeImg from '../assets/images/Iced French Vanilla.png';
+import icedWhiteChocolateCoffeeImg from '../assets/images/Iced White Chocolate.png';
+import icedButterscotchCoffeeImg from '../assets/images/Iced Butterscotch.png';
 
-import strawberryFruitTeaImg from '../assets/images/prod_strawberry_fruittea_1787316670998.jpg';
-import passionFruitTeaImg from '../assets/images/prod_passion_fruittea_1787316686347.jpg';
-import greenAppleTeaImg from '../assets/images/prod_green_apple_tea_1787316742637.jpg';
+// Fruit Tea Series Images
+import strawberryFruitTeaImg from '../assets/images/Strawberry.png';
+import passionFruitTeaImg from '../assets/images/Passionfruit.png';
+import greenAppleTeaImg from '../assets/images/Green Apple.png';    
+import kiwiFruitTeaImg from '../assets/images/Kiwi.png';
+import lycheeFruitTeaImg from '../assets/images/Lychee.png';
+import lemonFruitTeaImg from '../assets/images/Lemon.png';
+import peachFruitTeaImg from '../assets/images/Peach.png';
+import sweetGrapesFruitTeaImg from '../assets/images/Sweet Grapes.png';
+import blueberryFruitTeaImg from '../assets/images/Blueberry.png';
 
-// Dedicated Frappe Series Images
-import strawberryFrappeImg from '../assets/images/strawberry_frappe_1791115098223.jpg';
-import vanillaFrappeImg from '../assets/images/vanilla_frappe_1791115110638.jpg';
-import redVelvetFrappeImg from '../assets/images/red_velvet_frappe_1791115122054.jpg';
-import darkChocFrappeImg from '../assets/images/dark_choc_frappe_1791115134375.jpg';
-import hersheysBlendFrappeImg from '../assets/images/hersheys_blend_frappe_1791115145873.jpg';
-import chocTruffleFrappeImg from '../assets/images/choc_truffle_frappe_1791115157021.jpg';
-import mochaFrappeImg from '../assets/images/mocha_frappe_1791115168335.jpg';
-import cappuccinoFrappeImg from '../assets/images/cappuccino_frappe_1791115179350.jpg';
-import caramelMacchiatoFrappeImg from '../assets/images/caramel_macchiato_frappe_1791115191860.jpg';
+// Frappe Series Images
+import vanillaFrappeImg from '../assets/images/FVanilla.png';
+import redVelvetFrappeImg from '../assets/images/FRed Velvet.png';
+import darkChocFrappeImg from '../assets/images/FDark Chocolate.png';
+import hersheysBlendFrappeImg from '../assets/images/FHersheys Blend.png';
+import chocTruffleFrappeImg from '../assets/images/FChocolate Truffle.png';
+import mochaFrappeImg from '../assets/images/FMocha.png';
+import strawberryFrappeImg from  '../assets/images/FStrawberry.png';
+import cappuccinoFrappeImg from '../assets/images/FCappuccino.png';
+import caramelMacchiatoFrappeImg from '../assets/images/FCaramel Macchiato.png';
 
-import blissBerryFizzImg from '../assets/images/prod_bliss_berry_fizz_1787316726986.jpg';
+// Hot Coffee Series Images
+import hotSpanishLatteImg from '../assets/images/Hot Spanish Latte.png';
+import hotCafeMochaImg from '../assets/images/Hot Café Mocha.png';
+import hotCaramelMacchiatoImg from '../assets/images/Hot Caramel Macchiato.png';
+import hotAmericanoImg from '../assets/images/Hot Americano.png';
 
-import ubeLatteImg from '../assets/images/prod_ube_latte_1787316612913.jpg';
-import ubeCremeBruleeImg from '../assets/images/prod_ube_creme_brulee_1787316632351.jpg';
-import ubeFrappeImg from '../assets/images/prod_ube_frappe_1787316651689.jpg';
+// Soda Fizz Series Images
+import blissBerryFizzImg from '../assets/images/Soda Bliss Berry Fizz.png';
+import SodaGreenFizzImg from '../assets/images/Soda Green Fizz.png';
+import PeachyPopImg from '../assets/images/Soda Peachy Pop.png';
+import PlumFizzImg from '../assets/images/Soda Plum Fizz.png';
+import sodaStrawberryZingImg from '../assets/images/Soda Strawberry Zing.png';
+
+//Ube Series Images
+import ubeLatteImg from '../assets/images/Ube Latte.png';
+import ubeCremeBruleeImg from '../assets/images/Ube Crème Brûlée.png';
+import ubeFrappeImg from '../assets/images/Ube Frappe.png';
+import ubecreamyCoconutImg from '../assets/images/ube Creamy Coconut.png';
 
 // Series Fallback Images
-import milkteaSeriesImg from '../assets/images/commonbrew_milktea_series_1787315576363.jpg';
-import icedCoffeeSeriesImg from '../assets/images/commonbrew_iced_coffee_1787315593206.jpg';
-import hotCoffeeSeriesImg from '../assets/images/commonbrew_hot_coffee_1787315615726.jpg';
-import fruitTeaSeriesImg from '../assets/images/commonbrew_fruit_tea_1787315641755.jpg';
-import matchaSeriesImg from '../assets/images/commonbrew_matcha_1787315663484.jpg';
-import frappeSeriesImg from '../assets/images/commonbrew_frappe_1787315681303.jpg';
-import sodaSeriesImg from '../assets/images/commonbrew_soda_fizz_1787315697296.jpg';
-import ubeSeriesImg from '../assets/images/commonbrew_ube_series_1787315719739.jpg';
+import milkteaSeriesImg from '../assets/images/Wintermelon.png';
+import icedCoffeeSeriesImg from '../assets/images/Iced Americano.png';
+import hotCoffeeSeriesImg from '../assets/images/Hot Café Mocha.png';
+import fruitTeaSeriesImg from '../assets/images/Lychee.png';
+import matchaSeriesImg from '../assets/images/Matcha Latte.png';
+import frappeSeriesImg from '../assets/images/FRed Velvet.png';
+import sodaSeriesImg from '../assets/images/Soda Green Fizz.png';
+import ubeSeriesImg from '../assets/images/Ube Crème Brûlée.png';
 
 export const productSpecificImages: Record<string, string> = {
   // Milktea Series
@@ -52,46 +83,46 @@ export const productSpecificImages: Record<string, string> = {
   'Brown Sugar Milktea': brownsugarMilkteaImg,
   'Classic Milktea': wintermelonMilkteaImg,
   'Cookies & Cream Milktea': cookiesCreamMilkteaImg,
-  'Black Charcoal Milktea': cookiesCreamMilkteaImg,
+  'Black Charcoal Milktea': blackCharcoalMilkteaImg,
   'Thai Milktea': thaiMilkteaImg,
-  'Chocolate Milktea': taroMilkteaImg,
+  'Chocolate Milktea': chocolateMilkteaImg,
   'Caramel Milktea': brownsugarMilkteaImg,
 
   // Matcha Series
   'Matcha Latte': matchaLatteImg,
   'Matcha Crème Brulee Latte': matchaCremeBruleeImg,
-  'Matcha Creamy Coconut Latte': matchaLatteImg,
+  'Matcha Creamy Coconut Latte': matchaCreamyCoconut,
   'Matcha Strawberry Latte': matchaStrawberryImg,
   'Matcha Frappe': matchaFrappeImg,
   'Matcha Strawberry Frappe': matchaStrawberryImg,
 
   // Iced Coffee Series
-  'Iced Spanish Latte': spanishLatteImg,
-  'Iced Caramel Coffee': caramelMacchiatoImg,
-  'Iced Salted Caramel Coffee': caramelMacchiatoImg,
-  'Iced Hazelnut Coffee': seaSaltLatteImg,
-  'Iced Americano': seaSaltLatteImg,
-  'Iced Chocolate Coffee': darkChocFrappeImg,
-  'Iced French Vanilla Coffee': spanishLatteImg,
-  'Iced White Chocolate Coffee': spanishLatteImg,
-  'Iced Butterscotch Coffee': spanishLatteImg,
+  'Iced Spanish Latte': icedSpanishLatteImg,
+  'Iced Caramel Coffee': icedCaramelCoffeeImg,
+  'Iced Salted Caramel Coffee': icedSaltedCaramelCoffeeImg,
+  'Iced Hazelnut Coffee': icedHazelnutCoffeeImg,
+  'Iced Americano': icedAmericanoImg,
+  'Iced Chocolate Coffee': icedChocolateCoffeeImg,
+  'Iced French Vanilla Coffee': icedFrenchVanillaCoffeeImg,
+  'Iced White Chocolate Coffee': icedWhiteChocolateCoffeeImg,
+  'Iced Butterscotch Coffee': icedButterscotchCoffeeImg,       
 
   // Hot Coffee Series
-  'Hot Spanish Latte': hotCappuccinoImg,
-  'Hot Café Mocha': hotCappuccinoImg,
-  'Hot Caramel Macchiato': hotCappuccinoImg,
-  'Hot Americano': hotCappuccinoImg,
+  'Hot Spanish Latte': hotSpanishLatteImg,
+  'Hot Café Mocha': hotCafeMochaImg,
+  'Hot Caramel Macchiato': hotCaramelMacchiatoImg,
+  'Hot Americano': hotAmericanoImg,
 
   // Fruit Tea Series
   'Strawberry Fruit Tea': strawberryFruitTeaImg,
   'Passionfruit Tea': passionFruitTeaImg,
   'Green Apple Fruit Tea': greenAppleTeaImg,
-  'Blueberry Fruit Tea': strawberryFruitTeaImg,
-  'Sweet Grapes Fruit Tea': strawberryFruitTeaImg,
-  'Peach Fruit Tea': passionFruitTeaImg,
-  'Lemon Fruit Tea': passionFruitTeaImg,
-  'Lychee Fruit Tea': passionFruitTeaImg,
-  'Kiwi Fruit Tea': greenAppleTeaImg,
+  'Blueberry Fruit Tea': blueberryFruitTeaImg,
+  'Sweet Grapes Fruit Tea': sweetGrapesFruitTeaImg,
+  'Peach Fruit Tea': peachFruitTeaImg,
+  'Lemon Fruit Tea': lemonFruitTeaImg,
+  'Lychee Fruit Tea': lycheeFruitTeaImg,
+  'Kiwi Fruit Tea': kiwiFruitTeaImg,
 
   // Frappe Series
   'Strawberry Frappe': strawberryFrappeImg,
@@ -99,7 +130,6 @@ export const productSpecificImages: Record<string, string> = {
   'Red Velvet Frappe': redVelvetFrappeImg,
   'Dark Chocolate Frappe': darkChocFrappeImg,
   "Hershey's Blend Frappe": hersheysBlendFrappeImg,
-  'Chocolate Truffles Frappe': chocTruffleFrappeImg,
   'Chocolate Truffle Frappe': chocTruffleFrappeImg,
   'Mocha Frappe': mochaFrappeImg,
   'Cappuccino Frappe': cappuccinoFrappeImg,
@@ -108,15 +138,15 @@ export const productSpecificImages: Record<string, string> = {
   // Soda Fizz Series
   'Bliss Berry Fizz': blissBerryFizzImg,
   'Passion Zest': passionFruitTeaImg,
-  'Peachy Pop': blissBerryFizzImg,
-  'Plum Fizz': blissBerryFizzImg,
-  'Strawberry Zing': strawberryFruitTeaImg,
-  'Green Fizz': greenAppleTeaImg,
+  'Peachy Pop': PeachyPopImg,
+  'Plum Fizz': PlumFizzImg,
+  'Strawberry Zing': sodaStrawberryZingImg,
+  'Green Fizz': SodaGreenFizzImg,
 
   // Ube Series
   'Ube Latte': ubeLatteImg,
   'Ube Crème Brûlée': ubeCremeBruleeImg,
-  'Ube Creamy Coconut': ubeLatteImg,
+  'Ube Creamy Coconut': ubecreamyCoconutImg,
   'Ube Frappe': ubeFrappeImg,
 };
 
@@ -145,11 +175,11 @@ export const getCategoryDrinkImage = (categoryId?: string | null, productName?: 
   if (lowerName.includes('ube') && lowerName.includes('frappe')) return ubeFrappeImg;
   if (lowerName.includes('ube')) return ubeLatteImg;
 
-  if (lowerName.includes('spanish')) return spanishLatteImg;
-  if (lowerName.includes('caramel')) return caramelMacchiatoImg;
-  if (lowerName.includes('salt') || lowerName.includes('americano') || lowerName.includes('hazelnut')) return seaSaltLatteImg;
+  if (lowerName.includes('spanish')) return icedSpanishLatteImg;
+  if (lowerName.includes('caramel')) return icedCaramelCoffeeImg;
+  if (lowerName.includes('salt') || lowerName.includes('americano') || lowerName.includes('hazelnut')) return icedAmericanoImg;
 
-  if (lowerName.includes('strawberry') && lowerName.includes('frappe')) return strawberryFrappeImg;
+  if (lowerName.includes('strawberry') && lowerName.includes('frappe')) return matchastrawberryFrappeImg;
   if (lowerName.includes('vanilla') && lowerName.includes('frappe')) return vanillaFrappeImg;
   if (lowerName.includes('red velvet') && lowerName.includes('frappe')) return redVelvetFrappeImg;
   if (lowerName.includes('hershey')) return hersheysBlendFrappeImg;
@@ -158,8 +188,6 @@ export const getCategoryDrinkImage = (categoryId?: string | null, productName?: 
   if (lowerName.includes('cappuccino') && lowerName.includes('frappe')) return cappuccinoFrappeImg;
   if (lowerName.includes('caramel') && lowerName.includes('frappe')) return caramelMacchiatoFrappeImg;
   if (lowerName.includes('dark chocolate') && lowerName.includes('frappe')) return darkChocFrappeImg;
-
-  if (lowerName.startsWith('hot ') || lowerName.includes('hot coffee') || lowerName.includes('cappuccino')) return hotCappuccinoImg;
 
   if (lowerName.includes('strawberry')) return strawberryFruitTeaImg;
   if (lowerName.includes('passion') || lowerName.includes('lemon') || lowerName.includes('peach') || lowerName.includes('lychee')) return passionFruitTeaImg;

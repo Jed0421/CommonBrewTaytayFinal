@@ -175,7 +175,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_exact_wintermelon_1787317610496.jpg',
+    imageUrl: '/src/assets/images/Wintermelon.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -186,7 +186,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_brownsugar_milktea_1787316402694.jpg',
+    imageUrl: '/src/assets/images/Brown Sugar.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -197,7 +197,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_exact_wintermelon_1787317610496.jpg',
+    imageUrl: '/src/assets/images/Classic.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -208,7 +208,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_cookies_cream_milktea_1787316436923.jpg',
+    imageUrl: '/src/assets/images/Cookies and Cream.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -219,7 +219,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_cookies_cream_milktea_1787316436923.jpg',
+    imageUrl: '/src/assets/images/Black Charcoal.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -230,7 +230,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_thai_milktea_1787316420300.jpg',
+    imageUrl: '/src/assets/images/Thai.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -241,7 +241,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_taro_milktea_1787316451576.jpg',
+    imageUrl: '/src/assets/images/Chocolate.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -252,7 +252,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-milktea',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_brownsugar_milktea_1787316402694.jpg',
+    imageUrl: '/src/assets/images/Caramel.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -265,7 +265,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_latte_1787316472257.jpg',
+    imageUrl: '/src/assets/images/Matcha Latte.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -276,7 +276,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_creme_brulee_1787316510607.jpg',
+    imageUrl: '/src/assets/images/Matcha Crème Brulee.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -287,7 +287,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_latte_1787316472257.jpg',
+    imageUrl: '/src/assets/images/Matcha Creamy Coconut.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -298,7 +298,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_strawberry_1787316496783.jpg',
+    imageUrl: '/src/assets/images/Matcha Strawberry Latte.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -309,7 +309,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_frappe_1787316525396.jpg',
+    imageUrl: '/src/assets/images/Matcha Frappe.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -320,7 +320,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-matcha',
     price: 100,
     upsizePrice: 110,
-    imageUrl: '/src/assets/images/prod_matcha_strawberry_1787316496783.jpg',
+    imageUrl: '/src/assets/images/Matcha Strawberry Frappe.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -333,7 +333,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_caramel_macchiato_1787316575040.jpg',
+    imageUrl: '/src/assets/images/Iced Salted Caramel.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -344,7 +344,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_spanish_latte_1787316555735.jpg',
+    imageUrl: '/src/assets/images/Iced Butterscotch.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -355,7 +355,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_spanish_latte_1787316555735.jpg',
+    imageUrl: '/src/assets/images/Iced White Chocolate.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -366,7 +366,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_spanish_latte_1787316555735.jpg',
+    imageUrl: '/src/assets/images/Iced French Vanilla.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -377,7 +377,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_sea_salt_latte_1787316592366.jpg',
+    imageUrl: '/src/assets/images/Iced Hazelnut.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -388,7 +388,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_caramel_macchiato_1787316575040.jpg',
+    imageUrl: '/src/assets/images/Iced Caramel.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -399,7 +399,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_dark_choc_frappe_1787316709658.jpg',
+    imageUrl: '/src/assets/images/Iced Chocolate.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -410,7 +410,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_spanish_latte_1787316555735.jpg',
+    imageUrl: '/src/assets/images/Iced Spanish Latte.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -421,7 +421,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-coffee',
     price: 85,
     upsizePrice: 95,
-    imageUrl: '/src/assets/images/prod_sea_salt_latte_1787316592366.jpg',
+    imageUrl: '/src/assets/images/Iced Americano.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -434,7 +434,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-hotcoffee',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_hot_cappuccino_1787316758297.jpg',
+    imageUrl: '/src/assets/images/Hot Spanish Latte.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -445,7 +445,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-hotcoffee',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_hot_cappuccino_1787316758297.jpg',
+    imageUrl: '/src/assets/images/Hot Café Mocha.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -456,7 +456,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-hotcoffee',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_hot_cappuccino_1787316758297.jpg',
+    imageUrl: '/src/assets/images/Hot Caramel Macchiato.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -467,7 +467,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-hotcoffee',
     price: 80,
     upsizePrice: 90,
-    imageUrl: '/src/assets/images/prod_hot_cappuccino_1787316758297.jpg',
+    imageUrl: '/src/assets/images/Hot Americano.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -480,7 +480,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_passion_fruittea_1787316686347.jpg',
+    imageUrl: '/src/assets/images/Lemon.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -491,7 +491,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_passion_fruittea_1787316686347.jpg',
+    imageUrl: '/src/assets/images/Passionfruit.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -502,7 +502,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_green_apple_tea_1787316742637.jpg',
+    imageUrl: '/src/assets/images/Green Apple.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -513,7 +513,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_passion_fruittea_1787316686347.jpg',
+    imageUrl: '/src/assets/images/Lychee.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -524,7 +524,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_strawberry_fruittea_1787316670998.jpg',
+    imageUrl: '/src/assets/images/Strawberry.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -535,7 +535,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_passion_fruittea_1787316686347.jpg',
+    imageUrl: '/src/assets/images/Peach.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -546,7 +546,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_strawberry_fruittea_1787316670998.jpg',
+    imageUrl: '/src/assets/images/Blueberry.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -557,7 +557,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_green_apple_tea_1787316742637.jpg',
+    imageUrl: '/src/assets/images/Kiwi.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -568,7 +568,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-fruittea',
     price: 70,
     upsizePrice: 80,
-    imageUrl: '/src/assets/images/prod_strawberry_fruittea_1787316670998.jpg',
+    imageUrl: '/src/assets/images/Sweet Grapes.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -581,7 +581,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/strawberry_frappe_1791115098223.jpg',
+    imageUrl: '/src/assets/images/FStrawberry.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -592,7 +592,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/vanilla_frappe_1791115110638.jpg',
+    imageUrl: '/src/assets/images/FVanilla.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -603,7 +603,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/red_velvet_frappe_1791115122054.jpg',
+    imageUrl: '/src/assets/images/FRed Velvet.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -614,7 +614,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/dark_choc_frappe_1791115134375.jpg',
+    imageUrl: '/src/assets/images/FDark Chocolate.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -625,7 +625,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/hersheys_blend_frappe_1791115145873.jpg',
+    imageUrl: '/src/assets/images/FHersheys Blend.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -636,7 +636,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/choc_truffle_frappe_1791115157021.jpg',
+    imageUrl: '/src/assets/images/FChocolate Truffles.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -647,7 +647,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/mocha_frappe_1791115168335.jpg',
+    imageUrl: '/src/assets/images/FMocha.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -658,7 +658,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/cappuccino_frappe_1791115179350.jpg',
+    imageUrl: '/src/assets/images/FCappuccino.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -669,7 +669,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-frappe',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/caramel_macchiato_frappe_1791115191860.jpg',
+    imageUrl: '/src/assets/images/FCaramel Macchiato.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -682,7 +682,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_bliss_berry_fizz_1787316726986.jpg',
+    imageUrl: '/src/assets/images/Soda Bliss Berry Fizz.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -693,7 +693,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_passion_fruittea_1787316686347.jpg',
+    imageUrl: '/src/assets/images/Soda Passion Zest.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -704,7 +704,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_bliss_berry_fizz_1787316726986.jpg',
+    imageUrl: '/src/assets/images/Soda Peachy Pop.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -715,7 +715,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_bliss_berry_fizz_1787316726986.jpg',
+    imageUrl: '/src/assets/images/Soda Plum Fizz.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -726,7 +726,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_strawberry_fruittea_1787316670998.jpg',
+    imageUrl: '/src/assets/images/Soda Strawberry Zing.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -737,7 +737,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-soda',
     price: 95,
     upsizePrice: null,
-    imageUrl: '/src/assets/images/prod_green_apple_tea_1787316742637.jpg',
+    imageUrl: '/src/assets/images/Soda Green Fizz.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -750,7 +750,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-ube',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/prod_ube_latte_1787316612913.jpg',
+    imageUrl: '/src/assets/images/Ube Latte.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -761,7 +761,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-ube',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/prod_ube_creme_brulee_1787316632351.jpg',
+    imageUrl: '/src/assets/images/Ube Crème Brûlée.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -772,7 +772,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-ube',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/prod_ube_latte_1787316612913.jpg',
+    imageUrl: '/src/assets/images/Ube Creamy Coconut.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
@@ -783,7 +783,7 @@ export const commonbrewProducts: ProductRecord[] = [
     categoryId: 'cat-ube',
     price: 95,
     upsizePrice: 105,
-    imageUrl: '/src/assets/images/prod_ube_frappe_1787316651689.jpg',
+    imageUrl: '/src/assets/images/Ube Frappe.png',
     isAvailable: true,
     productType: 'Drink',
     createdAt: new Date().toISOString()
