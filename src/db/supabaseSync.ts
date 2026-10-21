@@ -99,6 +99,7 @@ export async function hydrateFromSupabase(state: {
       console.error('[Supabase Hydration] Error loading products:', prodErr);
     } else if (dbProducts && dbProducts.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbProducts.length} products from Supabase.`);
+      const legacyImageFixes: { id: string; url: string }[] = [];
       for (const p of dbProducts) {
         const existing = state.products.find(prod => prod.id === p.id);
         if (existing) {
@@ -106,7 +107,14 @@ export async function hydrateFromSupabase(state: {
           existing.categoryId = p.category_id;
           existing.price = Number(p.price);
           existing.upsizePrice = p.upsize_price !== null && p.upsize_price !== undefined ? Number(p.upsize_price) : null;
-          existing.imageUrl = p.image_url || existing.imageUrl;
+          // If Supabase still holds an OLD built-in image path (/src/assets/...) and the code has a
+          // newer one, keep the new one and write it back to Supabase. Custom uploads are never touched.
+          const dbImg: string | null = p.image_url || null;
+          if (dbImg && dbImg.startsWith('/src/assets/') && existing.imageUrl && existing.imageUrl !== dbImg) {
+            legacyImageFixes.push({ id: p.id, url: existing.imageUrl });
+          } else {
+            existing.imageUrl = dbImg || existing.imageUrl;
+          }
           existing.isAvailable = p.is_available !== undefined ? p.is_available : existing.isAvailable;
           existing.productType = p.product_type || existing.productType;
           existing.isArchived = p.is_archived !== undefined ? p.is_archived : existing.isArchived;
@@ -124,6 +132,14 @@ export async function hydrateFromSupabase(state: {
             createdAt: p.created_at
           });
         }
+      }
+
+      if (legacyImageFixes.length > 0) {
+        for (const fix of legacyImageFixes) {
+          const { error: imgErr } = await supabase.from('products').update({ image_url: fix.url }).eq('id', fix.id);
+          if (imgErr) console.error(`[Supabase Hydration] Could not update image for ${fix.id}:`, imgErr);
+        }
+        console.log(`[Supabase Hydration] Updated ${legacyImageFixes.length} product image path(s) in Supabase to the new images.`);
       }
     }
 
