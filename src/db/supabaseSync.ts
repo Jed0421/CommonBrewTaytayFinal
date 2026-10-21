@@ -1058,10 +1058,12 @@ export function startContinuousSupabaseSync(
   const pollInterval = setInterval(async () => {
     if (isSyncing) return;
     isSyncing = true;
-
     try {
-      // 1. Check Products
-      const { data: dbProducts } = await client.from('products').select('*');
+
+         // 1. Check Products
+      const { data: dbProducts } = await client
+        .from('products')
+        .select('id, name, category_id, price, upsize_price, is_available, product_type, is_archived, created_at');
       if (dbProducts && Array.isArray(dbProducts)) {
         let changed = false;
         for (const p of dbProducts) {
@@ -1077,7 +1079,6 @@ export function startContinuousSupabaseSync(
               existing.upsizePrice !== upsizePriceNum ||
               existing.isAvailable !== isAvail ||
               existing.categoryId !== p.category_id ||
-              existing.imageUrl !== p.image_url ||
               existing.isArchived !== Boolean(p.is_archived)
             ) {
               existing.name = p.name;
@@ -1085,19 +1086,19 @@ export function startContinuousSupabaseSync(
               existing.upsizePrice = upsizePriceNum;
               existing.isAvailable = isAvail;
               existing.categoryId = p.category_id;
-              existing.imageUrl = p.image_url;
               existing.isArchived = Boolean(p.is_archived);
               changed = true;
               console.log(`[Supabase Continuous Sync] Product modified in Supabase: "${p.name}" (price: ₱${priceNum}, avail: ${isAvail})`);
             }
           } else {
+            const { data: imgRow } = await client.from('products').select('image_url').eq('id', p.id).maybeSingle();
             state.products.push({
               id: p.id,
               name: p.name,
               categoryId: p.category_id,
               price: priceNum,
               upsizePrice: upsizePriceNum,
-              imageUrl: p.image_url,
+              imageUrl: imgRow?.image_url,
               isAvailable: isAvail,
               productType: p.product_type || 'Drink',
               isArchived: Boolean(p.is_archived),
