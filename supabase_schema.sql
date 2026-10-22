@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS) policies or leave open for service role
+-- Enable Row Level Security (RLS) on every table
 ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inventory_logs ENABLE ROW LEVEL SECURITY;
@@ -158,36 +158,23 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE online_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_settings ENABLE ROW LEVEL SECURITY;
 
--- Allow public read access & service-role full access
+-- Security: the public (anon) key may only READ menu information.
+-- users, transactions, online_orders, inventory and inventory_logs have no public
+-- policy, so only the server (secret service_role key, which bypasses RLS) can use them.
 DO $$
 BEGIN
-  DROP POLICY IF EXISTS "Public read categories" ON categories;
-  CREATE POLICY "Public read categories" ON categories FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Anyone can view categories" ON categories;
+  CREATE POLICY "Anyone can view categories" ON categories FOR SELECT TO anon, authenticated USING (true);
 
-  DROP POLICY IF EXISTS "Public read inventory" ON inventory;
-  CREATE POLICY "Public read inventory" ON inventory FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Anyone can view products" ON products;
+  CREATE POLICY "Anyone can view products" ON products FOR SELECT TO anon, authenticated USING (true);
 
-  DROP POLICY IF EXISTS "Public read inventory_logs" ON inventory_logs;
-  CREATE POLICY "Public read inventory_logs" ON inventory_logs FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Anyone can view product_recipes" ON product_recipes;
+  CREATE POLICY "Anyone can view product_recipes" ON product_recipes FOR SELECT TO anon, authenticated USING (true);
 
-  DROP POLICY IF EXISTS "Public read products" ON products;
-  CREATE POLICY "Public read products" ON products FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Anyone can view product_upsize_recipes" ON product_upsize_recipes;
+  CREATE POLICY "Anyone can view product_upsize_recipes" ON product_upsize_recipes FOR SELECT TO anon, authenticated USING (true);
 
-  DROP POLICY IF EXISTS "Public read product_recipes" ON product_recipes;
-  CREATE POLICY "Public read product_recipes" ON product_recipes FOR ALL USING (true);
-
-  DROP POLICY IF EXISTS "Public read product_upsize_recipes" ON product_upsize_recipes;
-  CREATE POLICY "Public read product_upsize_recipes" ON product_upsize_recipes FOR ALL USING (true);
-
-  DROP POLICY IF EXISTS "Public read users" ON users;
-  CREATE POLICY "Public read users" ON users FOR ALL USING (true);
-
-  DROP POLICY IF EXISTS "Public read transactions" ON transactions;
-  CREATE POLICY "Public read transactions" ON transactions FOR ALL USING (true);
-
-  DROP POLICY IF EXISTS "Public read online_orders" ON online_orders;
-  CREATE POLICY "Public read online_orders" ON online_orders FOR ALL USING (true);
-
-  DROP POLICY IF EXISTS "Public read store_settings" ON store_settings;
-  CREATE POLICY "Public read store_settings" ON store_settings FOR ALL USING (true);
+  DROP POLICY IF EXISTS "Anyone can view store_settings" ON store_settings;
+  CREATE POLICY "Anyone can view store_settings" ON store_settings FOR SELECT TO anon, authenticated USING (true);
 END $$;
