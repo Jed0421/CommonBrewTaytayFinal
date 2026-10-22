@@ -12,7 +12,7 @@ import { CommonBotDrawer } from './components/CommonBotDrawer';
 import { CustomerStorefrontView } from './components/CustomerStorefrontView';
 import { CommonBrewLogo } from './components/CommonBrewLogo';
 import { Coffee, Bell, Bot, Menu, X } from 'lucide-react';
-import { useRealtimeSync } from './lib/realtimeSync';
+import { useRealtimeSync, initClientRealtimeSync } from './lib/realtimeSync';
 
 export const App: React.FC = () => {
   const [mode, setMode] = useState<'customer' | 'staff'>('customer');
@@ -23,6 +23,7 @@ export const App: React.FC = () => {
   const [lowStockCount, setLowStockCount] = useState(0);
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [forcedSignOutNotice, setForcedSignOutNotice] = useState<string | null>(null);
 
   // Check auth session & theme
   useEffect(() => {
@@ -126,6 +127,65 @@ export const App: React.FC = () => {
       .catch(() => {});
   });
 
+    // Immediately end this device's staff session (e.g. the Admin deactivated this account)
+  const forceSignOut = (message: string) => {
+    localStorage.removeItem('commonbrew_staff_token');
+    setCurrentUser(null);
+    setMode('customer');
+    setIsBotOpen(false);
+    setIsMobileNavOpen(false);
+    setForcedSignOutNotice(message);
+  };
+
+  // Verify the account is still active: instant via realtime events, with a periodic check as fallback
+  useEffect(() => {
+    if (!currentUser) return;
+    const userId = currentUser.id;
+    const deactivatedMessage = 'Your account has been deactivated by the Administrator. You have been signed out.';
+
+    const verifySession = async () => {
+      const staffToken = localStorage.getItem('commonbrew_staff_token');
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: {
+            ...(staffToken ? { 'Authorization': `Bearer ${staffToken}` } : {}),
+            'X-Staff-User-Id': userId
+          }
+        });
+        if (res.status === 401) {
+          const data = await res.json().catch(() => null);
+          if (data?.reason === 'account_deactivated') {
+            forceSignOut(deactivatedMessage);
+          }
+        }
+      } catch (e) {
+        // Offline / server unreachable - keep the session and retry on the next tick
+      }
+    };
+
+    const handleRealtime = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      const revoked = detail.table === 'staff_sessions' && detail.eventType === 'REVOKED' && detail.new?.userId === userId;
+      const deactivated = detail.table === 'users' && detail.new?.id === userId && detail.new?.is_active === false;
+      if (revoked || deactivated) {
+        forceSignOut(deactivatedMessage);
+      }
+    };
+
+    initClientRealtimeSync();
+    window.addEventListener('supabase-data-changed', handleRealtime);
+    const interval = setInterval(verifySession, 10000);
+    const onFocus = () => verifySession();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('supabase-data-changed', handleRealtime);
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [currentUser?.id]);
+
+
   const handleSignOut = async () => {
     const staffToken = localStorage.getItem('commonbrew_staff_token');
     if (staffToken) {
@@ -153,9 +213,28 @@ export const App: React.FC = () => {
     );
   }
 
+    const forcedSignOutModal = forcedSignOutNotice && (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '1rem' }}
+    >
+      <div style={{ background: '#fff', borderRadius: '14px', maxWidth: '420px', width: '100%', padding: '1.5rem', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', textAlign: 'center' }}>
+        <h3 style={{ margin: '0 0 0.5rem', color: '#b91c1c', fontSize: '1.15rem', fontWeight: 800 }}>Signed Out</h3>
+        <p style={{ margin: '0 0 1.25rem', color: '#334155', fontSize: '0.95rem', lineHeight: 1.5 }}>{forcedSignOutNotice}</p>
+        <button
+          onClick={() => setForcedSignOutNotice(null)}
+          style={{ background: '#FF5E00', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.6rem 1.5rem', fontWeight: 700, cursor: 'pointer' }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+
   // Render Customer Public Home Page Showcase
   if (mode === 'customer') {
     return (
+      <>
+      {forcedSignOutModal}
       <CustomerStorefrontView
         onSwitchToStaffLogin={() => setMode('staff')}
         onStaffLoginSuccess={(user, token) => {
@@ -165,6 +244,7 @@ export const App: React.FC = () => {
           setCurrentView(user.role === 'Cashier' ? 'pos' : 'dashboard');
         }}
       />
+      </>
     );
   }
 

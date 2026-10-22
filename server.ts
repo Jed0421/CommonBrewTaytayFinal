@@ -651,6 +651,20 @@ interface CustomerSession {
 
 const staffSessions = new Map<string, StaffSession>();
 const customerSessions = new Map<string, CustomerSession>();
+const ACCOUNT_DEACTIVATED_MESSAGE = 'This account has been deactivated by the Administrator. Please contact your manager.';
+
+// Kill every open session of a staff account (e.g. after the Admin deactivates it)
+function revokeStaffSessionsForUser(userId: string): number {
+  let revoked = 0;
+  for (const [token, session] of staffSessions) {
+    if (session.userId === userId) {
+      staffSessions.delete(token);
+      revoked++;
+    }
+  }
+  return revoked;
+}
+
 
 function generateSessionToken(prefix: 'staff' | 'cust'): string {
   return `${prefix}_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
@@ -671,7 +685,12 @@ function getStaffUserFromRequest(req: express.Request): UserRecord | null {
   if (!session) return null;
   session.lastActive = Date.now();
   const user = users.find(u => u.id === session.userId && u.isActive);
-  return user || null;
+    if (!user) {
+    // Account was deactivated (or removed) while signed in - drop the session
+    staffSessions.delete(token);
+    return null;
+  }
+  return user;
 }
 
 function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
@@ -709,12 +728,13 @@ app.post('/api/auth/unified-login', (req, res) => {
     const cleanPass = loginPass.trim();
 
     // 1. Check in Staff / Admin accounts (users array)
-    let staffUser = users.find(u => 
-      u.isActive !== false && 
-      (u.username.toLowerCase() === cleanId || 
-       (u.email && u.email.toLowerCase() === cleanId) ||
-       u.role.toLowerCase() === cleanId)
-    );
+    const matchesStaffId = (u: UserRecord) =>
+      u.username.toLowerCase() === cleanId ||
+      (u.email && u.email.toLowerCase() === cleanId) ||
+      u.role.toLowerCase() === cleanId;
+    // Prefer an active account, but still match deactivated ones so they get a clear rejection
+    let staffUser = users.find(u => u.isActive !== false && matchesStaffId(u)) ||
+      users.find(u => u.isActive === false && matchesStaffId(u));
 
     // Ensure fallback default admin / cashier exist in memory if users array was manipulated
     if (!staffUser && (cleanId === 'admin' || cleanId === 'admin@commonbrew.ph')) {
@@ -755,6 +775,11 @@ app.post('/api/auth/unified-login', (req, res) => {
         (staffUser.username.toLowerCase() === 'cashier' && (cleanPass === 'cashier123' || loginPass === 'cashier123')) ||
         bcrypt.compareSync(cleanPass, staffUser.passwordHash) ||
         bcrypt.compareSync(loginPass, staffUser.passwordHash);
+        
+      if (isStaffPassValid && staffUser.isActive === false) {
+        return res.status(403).json({ success: false, deactivated: true, message: ACCOUNT_DEACTIVATED_MESSAGE });
+      }
+
 
       if (isStaffPassValid) {
         const token = generateSessionToken('staff');
@@ -843,8 +868,8 @@ app.post('/api/auth/login', (req, res) => {
     }
 
     const cleanUsername = String(username).trim().toLowerCase();
-    const user = users.find(u => u.username.toLowerCase() === cleanUsername && u.isActive);
-
+    const user = users.find(u => u.username.toLowerCase() === cleanUsername && u.isActive) ||
+      users.find(u => u.username.toLowerCase() === cleanUsername);
     if (!user) {
       return res.status(401).json({ success: false, message: 'User account not found or inactive.' });
     }
@@ -864,6 +889,11 @@ app.post('/api/auth/login', (req, res) => {
     const validPassword = bcrypt.compareSync(String(password), user.passwordHash);
     if (!validPassword) {
       return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+    }
+
+    
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, deactivated: true, message: ACCOUNT_DEACTIVATED_MESSAGE });
     }
 
     const token = generateSessionToken('staff');
@@ -953,7 +983,14 @@ app.get('/api/realtime/stream', (req, res) => {
 
 app.get('/api/auth/me', (req, res) => {
   const user = getStaffUserFromRequest(req);
-  if (!user) {
+    if (!user) {
+    // Tell the device explicitly when its account was deactivated so it can sign out with a notice.
+    // The client also sends its user id, which covers sessions lost to a revoke or server restart.
+    const claimedUserId = String(req.headers['x-staff-user-id'] || '').trim();
+    const claimedUser = claimedUserId ? users.find(u => u.id === claimedUserId) : undefined;
+    if (claimedUser && claimedUser.isActive === false) {
+      return res.status(401).json({ error: 'Account deactivated', reason: 'account_deactivated', message: ACCOUNT_DEACTIVATED_MESSAGE });
+    }
     return res.status(401).json({ error: 'Not authenticated' });
   }
   res.json({
@@ -3172,6 +3209,9 @@ app.delete('/api/users/:id', (req, res) => {
     return res.status(403).json({ success: false, message: 'The primary Administrator account cannot be deactivated.' });
   }
   u.isActive = false;
+    revokeStaffSessionsForUser(u.id);
+  // Push to every connected device so the deactivated cashier is signed out immediately
+  broadcastRealtimeEvent({ table: 'staff_sessions', eventType: 'REVOKED', new: { userId: u.id, reason: 'account_deactivated' } });
   syncUserToSupabase(u).catch(err => console.error('Supabase staff deactivate sync error:', err));
   res.json({ success: true, message: 'Staff member deactivated successfully.' });
 });
