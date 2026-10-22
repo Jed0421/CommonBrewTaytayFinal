@@ -37,6 +37,57 @@ const currentDir = typeof __dirname !== 'undefined' ? __dirname : (typeof import
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+app.disable('x-powered-by');
+// Behind Cloud Run / a reverse proxy: trust the first hop so req.ip is the real client IP
+app.set('trust proxy', 1);
+
+// Basic security headers on every response
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), payment=()');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
+// Simple in-memory rate limiter (per client IP, per route group)
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+function rateLimit(name: string, max: number, windowMs: number): express.RequestHandler {
+  return (req, res, next) => {
+    const key = `${name}:${req.ip}`;
+    const now = Date.now();
+    let bucket = rateLimitBuckets.get(key);
+    if (!bucket || now > bucket.resetAt) {
+      bucket = { count: 0, resetAt: now + windowMs };
+      rateLimitBuckets.set(key, bucket);
+    }
+    bucket.count++;
+    if (bucket.count > max) {
+      const retryAfterSec = Math.ceil((bucket.resetAt - now) / 1000);
+      res.setHeader('Retry-After', String(retryAfterSec));
+      return res.status(429).json({
+        success: false,
+        message: `Too many attempts. Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) and try again.`
+      });
+    }
+    next();
+  };
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (now > bucket.resetAt) rateLimitBuckets.delete(key);
+  }
+}, 10 * 60 * 1000).unref();
+
+const loginLimiter = rateLimit('login', 20, 15 * 60 * 1000);
+const otpSendLimiter = rateLimit('otp-send', 5, 15 * 60 * 1000);
+const otpVerifyLimiter = rateLimit('otp-verify', 10, 15 * 60 * 1000);
+const chatbotLimiter = rateLimit('chatbot', 30, 60 * 1000);
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ limit: '25mb', extended: true }));
 
@@ -693,6 +744,28 @@ function getStaffUserFromRequest(req: express.Request): UserRecord | null {
   return user;
 }
 
+// Route guards: any signed-in, active staff member / Administrator only
+const requireStaff: express.RequestHandler = (req, res, next) => {
+  const user = getStaffUserFromRequest(req);
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Please sign in as staff to continue.' });
+  }
+  (res.locals as any).staffUser = user;
+  next();
+};
+
+const requireAdmin: express.RequestHandler = (req, res, next) => {
+  const user = getStaffUserFromRequest(req);
+  if (!user) {
+    return res.status(401).json({ success: false, message: 'Please sign in as Administrator to continue.' });
+  }
+  if (user.role !== 'Administrator') {
+    return res.status(403).json({ success: false, message: 'Only the Administrator can do this.' });
+  }
+  (res.locals as any).staffUser = user;
+  next();
+};
+
 function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
   const authHeader = (req.headers['x-customer-token'] as string) || req.headers.authorization;
   let token = '';
@@ -714,7 +787,7 @@ function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
 // ── API ROUTES ──────────────────────────────────────────────
 
 // Unified Login Route (Single login page: automatically detects Admin, Staff, or Customer)
-app.post('/api/auth/unified-login', (req, res) => {
+app.post('/api/auth/unified-login', loginLimiter, (req, res) => {
   try {
     const { identifier, username, email, password } = req.body;
     const loginId = (identifier || username || email || '').trim();
@@ -736,43 +809,10 @@ app.post('/api/auth/unified-login', (req, res) => {
     let staffUser = users.find(u => u.isActive !== false && matchesStaffId(u)) ||
       users.find(u => u.isActive === false && matchesStaffId(u));
 
-    // Ensure fallback default admin / cashier exist in memory if users array was manipulated
-    if (!staffUser && (cleanId === 'admin' || cleanId === 'admin@commonbrew.ph')) {
-      staffUser = users.find(u => u.username.toLowerCase() === 'admin');
-      if (!staffUser) {
-        staffUser = {
-          id: 'u-1',
-          fullName: 'Manager Admin',
-          username: 'admin',
-          email: 'admin@commonbrew.ph',
-          passwordHash: bcrypt.hashSync('admin123', 10),
-          role: 'Administrator',
-          isActive: true,
-          createdAt: new Date().toISOString()
-        };
-        users.push(staffUser);
-      }
-    } else if (!staffUser && (cleanId === 'cashier' || cleanId === 'cashier@commonbrew.ph')) {
-      staffUser = users.find(u => u.username.toLowerCase() === 'cashier');
-      if (!staffUser) {
-        staffUser = {
-          id: 'u-2',
-          fullName: 'Maria Cashier',
-          username: 'cashier',
-          email: 'cashier@commonbrew.ph',
-          passwordHash: bcrypt.hashSync('cashier123', 10),
-          role: 'Cashier',
-          isActive: true,
-          createdAt: new Date().toISOString()
-        };
-        users.push(staffUser);
-      }
-    }
 
     if (staffUser) {
       const isStaffPassValid =
-        (staffUser.username.toLowerCase() === 'admin' && (cleanPass === 'admin123' || loginPass === 'admin123')) ||
-        (staffUser.username.toLowerCase() === 'cashier' && (cleanPass === 'cashier123' || loginPass === 'cashier123')) ||
+
         bcrypt.compareSync(cleanPass, staffUser.passwordHash) ||
         bcrypt.compareSync(loginPass, staffUser.passwordHash);
         
@@ -817,7 +857,7 @@ app.post('/api/auth/unified-login', (req, res) => {
 
     if (cust) {
       const isCustPassValid =
-        (cust.username.toLowerCase() === 'jedi' && (cleanPass === 'JDG_0421' || loginPass === 'JDG_0421')) ||
+
         bcrypt.compareSync(cleanPass, cust.passwordHash) ||
         bcrypt.compareSync(loginPass, cust.passwordHash);
 
@@ -860,7 +900,7 @@ app.post('/api/auth/unified-login', (req, res) => {
 });
 
 // Auth Routes (Staff)
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', loginLimiter, (req, res) => {
   try {
     const { username, password, role } = req.body;
     if (!username || !password) {
@@ -937,8 +977,18 @@ app.post('/api/auth/logout', (req, res) => {
 // ── REALTIME SERVER-SENT EVENTS (SSE) STREAM ─────────────────
 const sseClients = new Set<express.Response>();
 
+const SENSITIVE_FIELDS = ['password_hash', 'passwordHash', 'otp'];
+function stripSensitive(row: any) {
+  if (!row || typeof row !== 'object') return row;
+  const copy = { ...row };
+  for (const field of SENSITIVE_FIELDS) delete copy[field];
+  return copy;
+}
+
 export function broadcastRealtimeEvent(data: { table: string; eventType: string; new?: any; old?: any }) {
-  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  // The stream is public, so never forward password hashes or codes
+  const safe = { ...data, new: stripSensitive(data.new), old: stripSensitive(data.old) };
+  const payload = `data: ${JSON.stringify(safe)}\n\n`;
   for (const client of sseClients) {
     try {
       client.write(payload);
@@ -1198,7 +1248,7 @@ app.get('/api/auth/check-email', async (req, res) => {
 });
 
 // Endpoint to send Email Verification OTP code
-app.post('/api/auth/send-email-otp', async (req, res) => {
+app.post('/api/auth/send-email-otp', otpSendLimiter, async (req, res) => {
   const { email, purpose, userId } = req.body;
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -1248,7 +1298,7 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
   }
 
   // Generate a random 6-digit OTP code
-  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const generatedOtp = crypto.randomInt(100000, 1000000).toString();
 
   emailOtpStore.set(cleanEmail, {
     otp: generatedOtp,
@@ -1298,7 +1348,7 @@ app.post('/api/auth/send-email-otp', async (req, res) => {
 });
 
 // Endpoint to verify Email OTP code
-app.post('/api/auth/verify-email-otp', (req, res) => {
+app.post('/api/auth/verify-email-otp', otpVerifyLimiter, (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
@@ -1344,7 +1394,7 @@ app.post('/api/auth/verify-email-otp', (req, res) => {
 });
 
 // Endpoint to send Forgot Password Email Verification OTP
-app.post('/api/auth/forgot-password-send-otp', async (req, res) => {
+app.post('/api/auth/forgot-password-send-otp', otpSendLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
@@ -1366,7 +1416,7 @@ app.post('/api/auth/forgot-password-send-otp', async (req, res) => {
   }
 
   // Generate 6-digit OTP code
-  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const generatedOtp = crypto.randomInt(100000, 1000000).toString();
 
   emailOtpStore.set(cleanEmail, {
     otp: generatedOtp,
@@ -1412,7 +1462,7 @@ app.post('/api/auth/forgot-password-send-otp', async (req, res) => {
 });
 
 // Endpoint to reset customer password after OTP verification
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', otpVerifyLimiter, (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   if (!email || !newPassword) {
@@ -1549,7 +1599,7 @@ async function sendRealSms(rawPhone: string, messageText: string): Promise<{ sen
 }
 
 // Endpoint to send OTP code to mobile number
-app.post('/api/auth/send-otp', async (req, res) => {
+app.post('/api/auth/send-otp', otpSendLimiter, async (req, res) => {
   const { phone } = req.body;
 
   if (!phone || typeof phone !== 'string' || phone.trim().length < 8) {
@@ -1571,7 +1621,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
   }
 
   // Generate a random 6-digit OTP code
-  const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const generatedOtp = crypto.randomInt(100000, 1000000).toString();
   
   // Store OTP with 10-minute expiry
   phoneOtpStore.set(cleanPhone, {
@@ -1607,7 +1657,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
 });
 
 // Endpoint to verify OTP code
-app.post('/api/auth/verify-otp', (req, res) => {
+app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
   const { phone, otp } = req.body;
 
   if (!phone || !otp) {
@@ -1755,7 +1805,7 @@ app.post('/api/auth/register-customer', (req, res) => {
   });
 });
 
-app.post('/api/auth/login-customer', (req, res) => {
+app.post('/api/auth/login-customer', loginLimiter, (req, res) => {
   const { identifier, password } = req.body; // identifier can be username, email, or mobile phone
   const cleanId = (identifier || '').trim().toLowerCase();
   const cleanPhoneDigits = cleanId.replace(/\D/g, '');
@@ -1858,7 +1908,7 @@ app.get('/api/store-info', (req, res) => {
   res.json(storeInfo);
 });
 
-app.put('/api/store-info', async (req, res) => {
+app.put('/api/store-info', requireAdmin, async (req, res) => {
   const { name, storeName, address, phone, email, hours, openingTime, closingTime, tagline, aboutText, mapsUrl, facebookUrl, instagramUrl } = req.body;
   if (name !== undefined || storeName !== undefined) storeInfo.name = (name ?? storeName);
   if (address !== undefined) storeInfo.address = address;
@@ -1878,7 +1928,7 @@ app.put('/api/store-info', async (req, res) => {
 });
 
 // ── ONLINE ORDERING ROUTES ──────────────────────────────────
-app.get('/api/online-orders', (req, res) => {
+app.get('/api/online-orders', requireStaff, (req, res) => {
   const { status } = req.query;
   let list = [...onlineOrders];
   if (status && status !== 'all') {
@@ -2032,7 +2082,7 @@ app.post('/api/online-orders/create', (req, res) => {
   });
 });
 
-app.post('/api/online-orders/update-status', async (req, res) => {
+app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { orderId, status, cancelReason } = req.body;
   console.log('[Cancel Debug]', { orderId, status, cancelReason });
@@ -2471,12 +2521,12 @@ app.get('/api/products', (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/products/all', (req, res) => {
+app.get('/api/products/all', requireAdmin, (req, res) => {
   const enriched = products.map(enrichProductWithStock);
   res.json(enriched);
 });
 
-app.post('/api/products', (req, res) => {
+app.get('/api/products/all', requireAdmin, (req, res) => {
   const { name, categoryId, price, imageUrl, productType, upsizePrice, recipes, upsizeRecipes } = req.body;
 
   const newProd: ProductRecord = {
@@ -2525,7 +2575,7 @@ app.post('/api/products', (req, res) => {
   res.json({ success: true, product: newProd });
 });
 
-app.put('/api/products/:id', (req, res) => {
+app.put('/api/products/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const pIndex = products.findIndex(p => p.id === id);
   if (pIndex === -1) return res.status(404).json({ error: 'Product not found' });
@@ -2581,7 +2631,7 @@ app.put('/api/products/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
   const p = products.find(p => p.id === id);
   if (p) p.isAvailable = false;
@@ -2589,7 +2639,7 @@ app.delete('/api/products/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/products/:id/restore', (req, res) => {
+app.post('/api/products/:id/restore', requireAdmin, (req, res) => {
   const { id } = req.params;
   const p = products.find(p => p.id === id);
   if (p) p.isAvailable = true;
@@ -2598,7 +2648,7 @@ app.post('/api/products/:id/restore', (req, res) => {
 });
 
 // POS Transaction Handler
-app.post('/api/pos/transaction', (req, res) => {
+app.post('/api/pos/transaction', requireStaff, (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { paymentMethod, cashTendered, items } = req.body;
 
@@ -2691,7 +2741,7 @@ app.post('/api/pos/transaction', (req, res) => {
 });
 
 // Dashboard Analytics
-app.get('/api/dashboard/analytics', (req, res) => {
+app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
   const period = (req.query.period as string) || 'Today';
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
@@ -2781,7 +2831,7 @@ app.get('/api/dashboard/analytics', (req, res) => {
 });
 
 // Inventory Routes
-app.get('/api/inventory', (req, res) => {
+app.get('/api/inventory', requireStaff, (req, res) => {
   const { category } = req.query;
   let list = inventory.filter(i => !i.isArchived);
   if (category && category !== 'all') {
@@ -2807,7 +2857,7 @@ app.get('/api/inventory', (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/inventory/logs', (req, res) => {
+app.get('/api/inventory/logs', requireStaff, (req, res) => {
   const enriched = inventoryLogs.map(l => {
     const inv = inventory.find(i => i.id === l.inventoryItemId);
     return {
@@ -2821,7 +2871,7 @@ app.get('/api/inventory/logs', (req, res) => {
   res.json(enriched);
 });
 
-app.post('/api/inventory/add-stock', (req, res) => {
+app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
   const { itemId, quantity, note, changeType } = req.body;
   const item = inventory.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -2863,7 +2913,7 @@ app.post('/api/inventory/add-stock', (req, res) => {
   res.json({ success: true, newStock: item.currentStock });
 });
 
-app.post('/api/inventory/create', (req, res) => {
+app.post('/api/inventory/create', requireStaff, (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName } = req.body;
   const newItem: InventoryRecord = {
@@ -2919,7 +2969,7 @@ app.post('/api/inventory/create', (req, res) => {
   res.json({ success: true, item: newItem });
 });
 
-app.put('/api/inventory/:id', (req, res) => {
+app.put('/api/inventory/:id', requireStaff, (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -2961,7 +3011,7 @@ app.put('/api/inventory/:id', (req, res) => {
   res.json({ success: true, item });
 });
 
-app.delete('/api/inventory/:id', (req, res) => {
+app.delete('/api/inventory/:id', requireStaff, (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (item) {
@@ -2971,7 +3021,7 @@ app.delete('/api/inventory/:id', (req, res) => {
 });
 
 // Reports Routes
-app.get('/api/reports/transactions', (req, res) => {
+app.get('/api/reports/transactions', requireStaff, (req, res) => {
   const { from, to } = req.query;
 
   let filtered = [...transactions];
@@ -2987,7 +3037,7 @@ app.get('/api/reports/transactions', (req, res) => {
 });
 
 // Void Transaction / Cancel punched order endpoint
-app.post('/api/reports/transactions/:id/void', (req, res) => {
+app.post('/api/reports/transactions/:id/void', requireStaff, (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
@@ -3021,7 +3071,7 @@ app.post('/api/reports/transactions/:id/void', (req, res) => {
 });
 
 // Archive Routes
-app.get('/api/archive', (req, res) => {
+app.get('/api/archive', requireAdmin, (req, res) => {
   const archivedProds = products.filter(p => !p.isAvailable);
   const archivedUsers = users.filter(u => !u.isActive);
   const archivedInv = inventory.filter(i => i.isArchived);
@@ -3032,7 +3082,7 @@ app.get('/api/archive', (req, res) => {
   });
 });
 
-app.post('/api/archive/restore-product/:id', (req, res) => {
+app.post('/api/archive/restore-product/:id', requireAdmin, (req, res) => {
   const p = products.find(p => p.id === req.params.id);
   if (p) {
     p.isAvailable = true;
@@ -3041,7 +3091,7 @@ app.post('/api/archive/restore-product/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/archive/restore-user/:id', (req, res) => {
+app.post('/api/archive/restore-user/:id', requireAdmin, (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (u) {
     u.isActive = true;
@@ -3050,7 +3100,7 @@ app.post('/api/archive/restore-user/:id', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/archive/restore-inventory/:id', (req, res) => {
+app.post('/api/archive/restore-inventory/:id', requireAdmin, (req, res) => {
   const i = inventory.find(inv => inv.id === req.params.id);
   if (i) {
     i.isArchived = false;
@@ -3060,7 +3110,7 @@ app.post('/api/archive/restore-inventory/:id', (req, res) => {
 });
 
 // User Settings Management
-app.get('/api/users', (req, res) => {
+app.get('/api/users', requireAdmin, (req, res) => {
   res.json(users.map(u => ({
     id: u.id,
     fullName: u.fullName,
@@ -3073,7 +3123,7 @@ app.get('/api/users', (req, res) => {
   })));
 });
 
-app.post('/api/users/create', (req, res) => {
+app.post('/api/users/create', requireAdmin, (req, res) => {
   const { fullName, username, password, role, contactNumber, phone, email } = req.body;
   if (!fullName || !username || !password) {
     return res.status(400).json({ success: false, message: 'Please complete all required fields.' });
@@ -3123,7 +3173,7 @@ app.post('/api/users/create', (req, res) => {
 });
 
 // Update Staff User Details (Edit Staff)
-app.put('/api/users/:id', (req, res) => {
+app.put('/api/users/:id', requireAdmin, (req, res) => {
   const { fullName, username, role, phone, contactNumber, email, password } = req.body;
   const u = users.find(user => user.id === req.params.id);
   if (!u) {
@@ -3200,7 +3250,7 @@ app.put('/api/users/:id', (req, res) => {
   });
 });
 
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', requireAdmin, (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (!u) {
     return res.status(404).json({ success: false, message: 'User not found.' });
@@ -3216,7 +3266,7 @@ app.delete('/api/users/:id', (req, res) => {
   res.json({ success: true, message: 'Staff member deactivated successfully.' });
 });
 
-app.post('/api/users/:id/reactivate', (req, res) => {
+app.post('/api/users/:id/reactivate', requireAdmin, (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (!u) {
     return res.status(404).json({ success: false, message: 'User not found.' });
@@ -3226,7 +3276,7 @@ app.post('/api/users/:id/reactivate', (req, res) => {
   res.json({ success: true, message: 'Staff member reactivated successfully.' });
 });
 
-app.post('/api/users/:id/change-password', (req, res) => {
+app.post('/api/users/:id/change-password', requireAdmin, (req, res) => {
   const { newPassword } = req.body;
   const u = users.find(u => u.id === req.params.id);
   if (u && newPassword) {
@@ -3298,7 +3348,7 @@ async function generateAIChatResponse(
 }
 
 // AI Chatbot Route (CommonBot POS & Staff Assistant - Resilient Multi-Turn Support)
-app.post('/api/chatbot/ask', async (req, res) => {
+app.post('/api/chatbot/ask', chatbotLimiter, requireStaff, async (req, res) => {
   const { question, history, messages: reqMessages } = req.body;
   const staffUser = getStaffUserFromRequest(req);
   const userName = staffUser?.fullName || 'Barista / Admin';
@@ -3446,7 +3496,7 @@ function evaluateCustomerChatbotScope(query: string): { isAllowed: boolean; cate
 }
 
 // Customer-Facing AI Chatbot Route (Answers all prompts like ChatGPT, handles off-topic by recommending Top 5 Best Sellers)
-app.post('/api/customer-chatbot/ask', async (req, res) => {
+app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
   const { question, customerId, customerName, history, messages: reqMessages } = req.body;
   
   // Resolve current logged-in customer info
