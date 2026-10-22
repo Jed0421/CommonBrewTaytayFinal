@@ -1,81 +1,81 @@
 // milktea series images
-import wintermelonMilkteaImg from '../assets/images/Wintermelon.png';
-import brownsugarMilkteaImg from '../assets/images/Brown Sugar.png';
-import thaiMilkteaImg from '../assets/images/Thai.png';
-import cookiesCreamMilkteaImg from '../assets/images/Cookies and Cream.png';
-import taroMilkteaImg from '../assets/images/Taro.png';
-import chocolateMilkteaImg from '../assets/images/Chocolate.png';
-import blackCharcoalMilkteaImg from '../assets/images/Black Charcoal.png';  
+import wintermelonMilkteaImg from '../assets/images/Wintermelon.webp';
+import brownsugarMilkteaImg from '../assets/images/Brown Sugar.webp';
+import thaiMilkteaImg from '../assets/images/Thai.webp';
+import cookiesCreamMilkteaImg from '../assets/images/Cookies and Cream.webp';
+import taroMilkteaImg from '../assets/images/Taro.webp';
+import chocolateMilkteaImg from '../assets/images/Chocolate.webp';
+import blackCharcoalMilkteaImg from '../assets/images/Black Charcoal.webp';  
 
 // Matcha Series Images
-import matchaLatteImg from '../assets/images/Matcha Latte.png';
-import matchaStrawberryImg from '../assets/images/Matcha Strawberry Latte.png';
-import matchaCremeBruleeImg from '../assets/images/Matcha Crème Brulee.png';
-import matchaCreamyCoconut from '../assets/images/Matcha Creamy Coconut.png';
-import matchaFrappeImg from '../assets/images/Matcha Frappe.png';
-import matchastrawberryFrappeImg from '../assets/images/Matcha Strawberry Frappe.png';
+import matchaLatteImg from '../assets/images/Matcha Latte.webp';
+import matchaStrawberryImg from '../assets/images/Matcha Strawberry Latte.webp';
+import matchaCremeBruleeImg from '../assets/images/Matcha Crème Brulee.webp';
+import matchaCreamyCoconut from '../assets/images/Matcha Creamy Coconut.webp';
+import matchaFrappeImg from '../assets/images/Matcha Frappe.webp';
+import matchastrawberryFrappeImg from '../assets/images/Matcha Strawberry Frappe.webp';
 
 // Iced Coffee Series Images
-import icedSpanishLatteImg from '../assets/images/Iced Spanish Latte.png';
-import icedCaramelCoffeeImg from '../assets/images/Iced Caramel.png';
-import icedSaltedCaramelCoffeeImg from '../assets/images/Iced Salted Caramel.png';
-import icedHazelnutCoffeeImg from '../assets/images/Iced Hazelnut.png';
-import icedAmericanoImg from '../assets/images/Iced Americano.png';
-import icedChocolateCoffeeImg from '../assets/images/Iced Chocolate.png';
-import icedFrenchVanillaCoffeeImg from '../assets/images/Iced French Vanilla.png';
-import icedWhiteChocolateCoffeeImg from '../assets/images/Iced White Chocolate.png';
-import icedButterscotchCoffeeImg from '../assets/images/Iced Butterscotch.png';
+import icedSpanishLatteImg from '../assets/images/Iced Spanish Latte.webp';
+import icedCaramelCoffeeImg from '../assets/images/Iced Caramel.webp';
+import icedSaltedCaramelCoffeeImg from '../assets/images/Iced Salted Caramel.webp';
+import icedHazelnutCoffeeImg from '../assets/images/Iced Hazelnut.webp';
+import icedAmericanoImg from '../assets/images/Iced Americano.webp';
+import icedChocolateCoffeeImg from '../assets/images/Iced Chocolate.webp';
+import icedFrenchVanillaCoffeeImg from '../assets/images/Iced French Vanilla.webp';
+import icedWhiteChocolateCoffeeImg from '../assets/images/Iced White Chocolate.webp';
+import icedButterscotchCoffeeImg from '../assets/images/Iced Butterscotch.webp';
 
 // Fruit Tea Series Images
-import strawberryFruitTeaImg from '../assets/images/Strawberry.png';
-import passionFruitTeaImg from '../assets/images/Passionfruit.png';
-import greenAppleTeaImg from '../assets/images/Green Apple.png';    
-import kiwiFruitTeaImg from '../assets/images/Kiwi.png';
-import lycheeFruitTeaImg from '../assets/images/Lychee.png';
-import lemonFruitTeaImg from '../assets/images/Lemon.png';
-import peachFruitTeaImg from '../assets/images/Peach.png';
-import sweetGrapesFruitTeaImg from '../assets/images/Sweet Grapes.png';
-import blueberryFruitTeaImg from '../assets/images/Blueberry.png';
+import strawberryFruitTeaImg from '../assets/images/Strawberry.webp';
+import passionFruitTeaImg from '../assets/images/Passionfruit.webp';
+import greenAppleTeaImg from '../assets/images/Green Apple.webp';    
+import kiwiFruitTeaImg from '../assets/images/Kiwi.webp';
+import lycheeFruitTeaImg from '../assets/images/Lychee.webp';
+import lemonFruitTeaImg from '../assets/images/Lemon.webp';
+import peachFruitTeaImg from '../assets/images/Peach.webp';
+import sweetGrapesFruitTeaImg from '../assets/images/Sweet Grapes.webp';
+import blueberryFruitTeaImg from '../assets/images/Blueberry.webp';
 
 // Frappe Series Images
-import vanillaFrappeImg from '../assets/images/FVanilla.png';
-import redVelvetFrappeImg from '../assets/images/FRed Velvet.png';
-import darkChocFrappeImg from '../assets/images/FDark Chocolate.png';
-import hersheysBlendFrappeImg from '../assets/images/FHersheys Blend.png';
-import chocTruffleFrappeImg from '../assets/images/FChocolate Truffle.png';
-import mochaFrappeImg from '../assets/images/FMocha.png';
-import strawberryFrappeImg from  '../assets/images/FStrawberry.png';
-import cappuccinoFrappeImg from '../assets/images/FCappuccino.png';
-import caramelMacchiatoFrappeImg from '../assets/images/FCaramel Macchiato.png';
+import vanillaFrappeImg from '../assets/images/FVanilla.webp';
+import redVelvetFrappeImg from '../assets/images/FRed Velvet.webp';
+import darkChocFrappeImg from '../assets/images/FDark Chocolate.webp';
+import hersheysBlendFrappeImg from '../assets/images/FHersheys Blend.webp';
+import chocTruffleFrappeImg from '../assets/images/FChocolate Truffle.webp';
+import mochaFrappeImg from '../assets/images/FMocha.webp';
+import strawberryFrappeImg from  '../assets/images/FStrawberry.webp';
+import cappuccinoFrappeImg from '../assets/images/FCappuccino.webp';
+import caramelMacchiatoFrappeImg from '../assets/images/FCaramel Macchiato.webp';
 
 // Hot Coffee Series Images
-import hotSpanishLatteImg from '../assets/images/Hot Spanish Latte.png';
-import hotCafeMochaImg from '../assets/images/Hot Café Mocha.png';
-import hotCaramelMacchiatoImg from '../assets/images/Hot Caramel Macchiato.png';
-import hotAmericanoImg from '../assets/images/Hot Americano.png';
+import hotSpanishLatteImg from '../assets/images/Hot Spanish Latte.webp';
+import hotCafeMochaImg from '../assets/images/Hot Café Mocha.webp';
+import hotCaramelMacchiatoImg from '../assets/images/Hot Caramel Macchiato.webp';
+import hotAmericanoImg from '../assets/images/Hot Americano.webp';
 
 // Soda Fizz Series Images
-import blissBerryFizzImg from '../assets/images/Soda Bliss Berry Fizz.png';
-import SodaGreenFizzImg from '../assets/images/Soda Green Fizz.png';
-import PeachyPopImg from '../assets/images/Soda Peachy Pop.png';
-import PlumFizzImg from '../assets/images/Soda Plum Fizz.png';
-import sodaStrawberryZingImg from '../assets/images/Soda Strawberry Zing.png';
+import blissBerryFizzImg from '../assets/images/Soda Bliss Berry Fizz.webp';
+import SodaGreenFizzImg from '../assets/images/Soda Green Fizz.webp';
+import PeachyPopImg from '../assets/images/Soda Peachy Pop.webp';
+import PlumFizzImg from '../assets/images/Soda Plum Fizz.webp';
+import sodaStrawberryZingImg from '../assets/images/Soda Strawberry Zing.webp';
 
 //Ube Series Images
-import ubeLatteImg from '../assets/images/Ube Latte.png';
-import ubeCremeBruleeImg from '../assets/images/Ube Crème Brûlée.png';
-import ubeFrappeImg from '../assets/images/Ube Frappe.png';
-import ubecreamyCoconutImg from '../assets/images/Ube Creamy Coconut.png';
+import ubeLatteImg from '../assets/images/Ube Latte.webp';
+import ubeCremeBruleeImg from '../assets/images/Ube Crème Brûlée.webp';
+import ubeFrappeImg from '../assets/images/Ube Frappe.webp';
+import ubecreamyCoconutImg from '../assets/images/Ube Creamy Coconut.webp';
 
 // Series Fallback Images
-import milkteaSeriesImg from '../assets/images/Wintermelon.png';
-import icedCoffeeSeriesImg from '../assets/images/Iced Americano.png';
-import hotCoffeeSeriesImg from '../assets/images/Hot Café Mocha.png';
-import fruitTeaSeriesImg from '../assets/images/Lychee.png';
-import matchaSeriesImg from '../assets/images/Matcha Latte.png';
-import frappeSeriesImg from '../assets/images/FRed Velvet.png';
-import sodaSeriesImg from '../assets/images/Soda Green Fizz.png';
-import ubeSeriesImg from '../assets/images/Ube Crème Brûlée.png';
+import milkteaSeriesImg from '../assets/images/Wintermelon.webp';
+import icedCoffeeSeriesImg from '../assets/images/Iced Americano.webp';
+import hotCoffeeSeriesImg from '../assets/images/Hot Café Mocha.webp';
+import fruitTeaSeriesImg from '../assets/images/Lychee.webp';
+import matchaSeriesImg from '../assets/images/Matcha Latte.webp';
+import frappeSeriesImg from '../assets/images/FRed Velvet.webp';
+import sodaSeriesImg from '../assets/images/Soda Green Fizz.webp';
+import ubeSeriesImg from '../assets/images/Ube Crème Brûlée.webp';
 
 export const productSpecificImages: Record<string, string> = {
   // Milktea Series
@@ -208,4 +208,17 @@ export const getCategoryDrinkImage = (categoryId?: string | null, productName?: 
   if (cat.includes('ube')) return ubeSeriesImg;
 
   return wintermelonMilkteaImg;
+};
+
+// Built-in product images are stored as '/src/assets/images/<file>' paths. Those only exist on the
+// dev server, so map them to the bundled (hashed) files that also work in the production build.
+const bundledImages = import.meta.glob('../assets/images/*.webp', { eager: true, import: 'default' }) as Record<string, string>;
+
+export const getProductImage = (imageUrl?: string | null, categoryId?: string | null, productName?: string | null): string => {
+  if (imageUrl && imageUrl.startsWith('/src/assets/images/')) {
+    const fileName = imageUrl.substring('/src/assets/images/'.length).replace(/\.(png|jpe?g)$/i, '.webp');
+    const bundled = bundledImages[`../assets/images/${fileName}`];
+    if (bundled) return bundled;
+  }
+  return imageUrl || getCategoryDrinkImage(categoryId, productName);
 };

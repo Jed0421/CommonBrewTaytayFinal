@@ -3,12 +3,12 @@ import { Product, Customer, OnlineOrder, StoreInfo, OrderItem, User } from '../t
 import { CommonBrewLogo } from './CommonBrewLogo';
 import { CustomerBotDrawer } from './CustomerBotDrawer';
 import { AccessPortalModal } from './AccessPortalModal';
-import heroBg from '../assets/images/commonbrew_hero_1784908762215.jpg';
-import storeImg from '../assets/images/commonbrew_taytay_store_facade_1784910285403.jpg';
+import heroBg from '../assets/images/commonbrew_hero_1784908762215.webp';
+import storeImg from '../assets/images/commonbrew_taytay_store_facade_1784910285403.webp';
 import gcashQrImg from '../assets/images/gcash_qr_code_only.jpg';
 import { getVerseOfTheDay } from '../data/bibleVerses';
 import { commonbrewAddons, getAddonPrice, getAvailableAddonsForProduct } from '../data/commonbrewData';
-import { getCategoryDrinkImage } from '../data/drinkImages';
+import { getCategoryDrinkImage, getProductImage } from '../data/drinkImages';
 import {
   MapPin,
   Coffee,
@@ -1362,7 +1362,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
             >
               <div style={{ height: '180px', position: 'relative', overflow: 'hidden', background: '#f3ece3' }}>
                 <img
-                  src={prod.imageUrl || getCategoryDrinkImage(prod.categoryId, prod.name)}
+                  src={getProductImage(prod.imageUrl, prod.categoryId, prod.name)}
                   alt={prod.name}
                   className="sf-product-img"
                   onError={(e) => {
@@ -1551,7 +1551,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
           <div style={{ background: '#fff', width: '100%', maxWidth: '480px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ height: '160px', position: 'relative', background: '#3d2314' }}>
               <img
-                src={selectedProduct.imageUrl || getCategoryDrinkImage(selectedProduct.categoryId, selectedProduct.name)}
+                src={getProductImage(selectedProduct.imageUrl, selectedProduct.categoryId, selectedProduct.name)}
                 alt={selectedProduct.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {

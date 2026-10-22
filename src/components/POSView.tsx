@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product, Category, OrderItem, OnlineOrder } from '../types';
 import { Search, Bike, Coffee, Zap, Banknote, Smartphone, Printer, X, User, Store, MapPin, Clock, CheckCircle2, Check, Plus, Minus, Mail, Send, AlertCircle, FileText, Eye, Receipt, Ban } from 'lucide-react';
 import { commonbrewAddons, getAddonPrice, getAvailableAddonsForProduct } from '../data/commonbrewData';
-import { getCategoryDrinkImage } from '../data/drinkImages';
+import { getCategoryDrinkImage, getProductImage } from '../data/drinkImages';
 import { ThermalReceiptModal, ThermalReceiptData } from './ThermalReceiptModal';
 import { useRealtimeSync } from '../lib/realtimeSync';
 
@@ -502,7 +502,7 @@ export const POSView: React.FC = () => {
 
                 <div className="product-img-wrap" style={{ position: 'relative' }}>
                   <img
-                    src={product.imageUrl || getCategoryDrinkImage(product.categoryId, product.name)}
+                    src={getProductImage(product.imageUrl, product.categoryId, product.name)}
                     alt={product.name}
                     className="product-img"
                     onError={(e) => {

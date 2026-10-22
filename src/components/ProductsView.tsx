@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, Upload, Image as ImageIcon, Trash2, CheckCircle2, FileImage } from 'lucide-react';
 import { Product, Category, InventoryItem } from '../types';
-import { getCategoryDrinkImage } from '../data/drinkImages';
+import { getCategoryDrinkImage, getProductImage } from '../data/drinkImages';
 import { useRealtimeSync } from '../lib/realtimeSync';
 
 export const ProductsView: React.FC = () => {
@@ -392,7 +392,7 @@ export const ProductsView: React.FC = () => {
             <div key={product.id} className="product-mgmt-card">
               <div className="product-mgmt-img">
                 <img
-                  src={product.imageUrl || getCategoryDrinkImage(product.categoryId, product.name)}
+                  src={getProductImage(product.imageUrl, product.categoryId, product.name)}
                   alt={product.name}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = getCategoryDrinkImage(product.categoryId, product.name);
