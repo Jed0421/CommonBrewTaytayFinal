@@ -707,6 +707,20 @@ interface CustomerSession {
 const staffSessions = new Map<string, StaffSession>();
 const customerSessions = new Map<string, CustomerSession>();
 
+// Logins expire: staff after one long shift, customers after 30 days
+const STAFF_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const CUSTOMER_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, session] of staffSessions) {
+    if (now - session.createdAt > STAFF_SESSION_MAX_AGE_MS) staffSessions.delete(token);
+  }
+  for (const [token, session] of customerSessions) {
+    if (now - session.createdAt > CUSTOMER_SESSION_MAX_AGE_MS) customerSessions.delete(token);
+  }
+}, 15 * 60 * 1000).unref();
+
 const ACCOUNT_DEACTIVATED_MESSAGE = 'This account has been deactivated by the Administrator. Please contact your manager.';
 
 // Kill every open session of a staff account (e.g. after the Admin deactivates it)
@@ -738,6 +752,10 @@ function getStaffUserFromRequest(req: express.Request): UserRecord | null {
   if (!token) return null;
   const session = staffSessions.get(token);
   if (!session) return null;
+  if (Date.now() - session.createdAt > STAFF_SESSION_MAX_AGE_MS) {
+    staffSessions.delete(token);
+    return null;
+  }
   session.lastActive = Date.now();
   const user = users.find(u => u.id === session.userId && u.isActive);
   if (!user) {
@@ -783,6 +801,10 @@ function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
   if (!token) return null;
   const session = customerSessions.get(token);
   if (!session) return null;
+  if (Date.now() - session.createdAt > CUSTOMER_SESSION_MAX_AGE_MS) {
+    customerSessions.delete(token);
+    return null;
+  }
   session.lastActive = Date.now();
   const cust = customers.find(c => c.id === session.customerId);
   return cust || null;
@@ -1946,14 +1968,14 @@ app.get('/api/online-orders', requireStaff, (req, res) => {
 });
 
 app.get('/api/customer/orders', (req, res) => {
+  // Only the signed-in customer's own orders - never trust ids/emails from the URL
   const sessionCustomer = getCustomerFromRequest(req);
-  const custId = (req.query.customerId as string) || sessionCustomer?.id;
-  const email = (req.query.email as string) || sessionCustomer?.email;
-  const phone = (req.query.phone as string) || sessionCustomer?.phone;
-
-  if (!custId && !email && !phone && !sessionCustomer) {
-    return res.json([]);
+  if (!sessionCustomer) {
+    return res.status(401).json({ success: false, message: 'Please sign in to view your orders.' });
   }
+  const custId = sessionCustomer.id;
+  const email = sessionCustomer.email;
+  const phone = sessionCustomer.phone;
 
   let myOrders = onlineOrders.filter(o => {
     if (custId && o.customerId === custId) return true;

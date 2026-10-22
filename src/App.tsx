@@ -142,6 +142,7 @@ export const App: React.FC = () => {
     if (!currentUser) return;
     const userId = currentUser.id;
     const deactivatedMessage = 'Your account has been deactivated by the Administrator. You have been signed out.';
+    const expiredMessage = 'Your login session has ended. Please sign in again.';
 
     const verifySession = async () => {
       const staffToken = localStorage.getItem('commonbrew_staff_token');
@@ -154,9 +155,7 @@ export const App: React.FC = () => {
         });
         if (res.status === 401) {
           const data = await res.json().catch(() => null);
-          if (data?.reason === 'account_deactivated') {
-            forceSignOut(deactivatedMessage);
-          }
+          forceSignOut(data?.reason === 'account_deactivated' ? deactivatedMessage : expiredMessage);
         }
       } catch (e) {
         // Offline / server unreachable - keep the session and retry on the next tick
