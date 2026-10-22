@@ -53,11 +53,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Simple in-memory rate limiter (per client IP, per route group)
+// Simple in-memory rate limiter (per client IP + optional target such as the email/username,
+// so customers sharing the store Wi-Fi don't block each other)
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
-function rateLimit(name: string, max: number, windowMs: number): express.RequestHandler {
+function rateLimit(name: string, max: number, windowMs: number, targetOf?: (req: express.Request) => string): express.RequestHandler {
   return (req, res, next) => {
-    const key = `${name}:${req.ip}`;
+    const target = targetOf ? String(targetOf(req) || '').trim().toLowerCase() : '';
+    const key = `${name}:${req.ip}:${target}`;
     const now = Date.now();
     let bucket = rateLimitBuckets.get(key);
     if (!bucket || now > bucket.resetAt) {
@@ -83,9 +85,11 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-const loginLimiter = rateLimit('login', 20, 15 * 60 * 1000);
-const otpSendLimiter = rateLimit('otp-send', 5, 15 * 60 * 1000);
-const otpVerifyLimiter = rateLimit('otp-verify', 10, 15 * 60 * 1000);
+const loginTarget = (req: express.Request) => req.body?.identifier || req.body?.username || req.body?.email || '';
+const otpTarget = (req: express.Request) => req.body?.email || req.body?.phone || '';
+const loginLimiter = rateLimit('login', 20, 15 * 60 * 1000, loginTarget);
+const otpSendLimiter = rateLimit('otp-send', 8, 15 * 60 * 1000, otpTarget);
+const otpVerifyLimiter = rateLimit('otp-verify', 10, 15 * 60 * 1000, otpTarget);
 const chatbotLimiter = rateLimit('chatbot', 30, 60 * 1000);
 
 app.use(express.json({ limit: '25mb' }));
@@ -1053,6 +1057,9 @@ const phoneOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: b
 const emailOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: boolean }> = new Map();
 
 // Helper to send real emails via Nodemailer (Gmail SMTP) or Resend
+// Fail fast instead of hanging for minutes when Gmail is slow or unreachable
+const SMTP_TIMEOUTS = { connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000 };
+
 async function sendRealEmail(toEmail: string, subject: string, htmlContent: string, textContent?: string): Promise<{ sent: boolean; provider: string; error?: string }> {
   const smtpUser = (process.env.SMTP_USER || 'commonbrewtaytay@gmail.com').trim();
   const rawPass = process.env.SMTP_PASS || '';
@@ -1074,6 +1081,7 @@ async function sendRealEmail(toEmail: string, subject: string, htmlContent: stri
           user: smtpUser,
           pass: smtpPass
         },
+        ...SMTP_TIMEOUTS,
         tls: {
           rejectUnauthorized: false
         }
@@ -1102,7 +1110,8 @@ async function sendRealEmail(toEmail: string, subject: string, htmlContent: stri
         auth: {
           user: smtpUser,
           pass: smtpPass
-        }
+        },
+        ...SMTP_TIMEOUTS
       });
 
       const info = await transporterGmail.sendMail({
@@ -1131,6 +1140,7 @@ async function sendRealEmail(toEmail: string, subject: string, htmlContent: stri
           user: smtpUser,
           pass: smtpPass
         },
+        ...SMTP_TIMEOUTS,
         tls: {
           rejectUnauthorized: false
         }
