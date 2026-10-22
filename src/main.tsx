@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-
 // Attach the signed-in staff token to every same-origin /api request,
 // so protected Admin/Staff routes on the server know who is calling.
 const originalFetch = window.fetch.bind(window);

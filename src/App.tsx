@@ -127,7 +127,7 @@ export const App: React.FC = () => {
       .catch(() => {});
   });
 
-    // Immediately end this device's staff session (e.g. the Admin deactivated this account)
+  // Immediately end this device's staff session (e.g. the Admin deactivated this account)
   const forceSignOut = (message: string) => {
     localStorage.removeItem('commonbrew_staff_token');
     setCurrentUser(null);
@@ -185,7 +185,6 @@ export const App: React.FC = () => {
     };
   }, [currentUser?.id]);
 
-
   const handleSignOut = async () => {
     const staffToken = localStorage.getItem('commonbrew_staff_token');
     if (staffToken) {
@@ -213,7 +212,7 @@ export const App: React.FC = () => {
     );
   }
 
-    const forcedSignOutModal = forcedSignOutNotice && (
+  const forcedSignOutModal = forcedSignOutNotice && (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '1rem' }}
     >
