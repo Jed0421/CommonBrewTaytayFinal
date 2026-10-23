@@ -3,6 +3,54 @@ import { Transaction } from '../types';
 import { ThermalReceiptModal, ThermalReceiptData } from './ThermalReceiptModal';
 import { useRealtimeSync } from '../lib/realtimeSync';
 
+type PaymentFilter = 'ALL' | 'CASH' | 'ONLINE';
+type OrderTypeFilter = 'ALL' | 'IN_STORE' | 'ONLINE_ORDER';
+
+// Cash, Cash on Pickup and Cash on Delivery are cash; GCash / card / e-wallets are online payments
+const isCashPayment = (method?: string) => (method || 'Cash').trim().toLowerCase().startsWith('cash');
+
+// Online orders are logged with a CB-ONL-xxxx reference when the order is completed
+const isOnlineOrder = (t: Transaction) =>
+  (t.transactionRef || '').toUpperCase().startsWith('CB-ONL') || (t.id || '').startsWith('tx-onl-');
+
+const peso = (amount: number) => `₱${amount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Segmented filter control matching the status tabs
+const FilterTabs = <T extends string>({ label, value, onChange, options }: {
+  label: string;
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string; color?: string }[];
+}) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+    <span className="form-label" style={{ margin: 0 }}>{label}</span>
+    <div style={{ display: 'flex', gap: '0.35rem', background: '#f3f4f6', padding: '4px', borderRadius: '10px', flexWrap: 'wrap' }}>
+      {options.map(opt => {
+        const active = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              background: active ? '#ffffff' : 'transparent',
+              color: active ? (opt.color || '#111827') : '#6b7280',
+              boxShadow: active ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+);
+
 export const ReportsView: React.FC = () => {
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
@@ -15,6 +63,8 @@ export const ReportsView: React.FC = () => {
   });
 
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'COMPLETED' | 'VOIDED'>('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('ALL');
+  const [orderTypeFilter, setOrderTypeFilter] = useState<OrderTypeFilter>('ALL');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
@@ -52,9 +102,27 @@ export const ReportsView: React.FC = () => {
     }
   };
 
+  // Order type filter applies everywhere; payment filter applies to everything except the
+  // Cash / Online payment cards (so both totals stay visible side by side)
+  const isVoidedTx = (t: Transaction) => t.status === 'Voided' || t.status === 'void';
+  const matchesOrderType = (t: Transaction) =>
+    orderTypeFilter === 'ALL' || (orderTypeFilter === 'ONLINE_ORDER' ? isOnlineOrder(t) : !isOnlineOrder(t));
+  const matchesPayment = (t: Transaction) =>
+    paymentFilter === 'ALL' || (paymentFilter === 'CASH' ? isCashPayment(t.paymentMethod) : !isCashPayment(t.paymentMethod));
+
+  const orderTypeTxns = transactions.filter(matchesOrderType);
+  const scopedTxns = orderTypeTxns.filter(matchesPayment);
+
   // Calculations
-  const completedTxns = transactions.filter(t => t.status !== 'Voided' && t.status !== 'void');
-  const voidedTxns = transactions.filter(t => t.status === 'Voided' || t.status === 'void');
+  const completedTxns = scopedTxns.filter(t => !isVoidedTx(t));
+  const voidedTxns = scopedTxns.filter(isVoidedTx);
+
+  // Separate money totals per payment type (respects the order type filter)
+  const completedForPaymentSplit = orderTypeTxns.filter(t => !isVoidedTx(t));
+  const cashTxns = completedForPaymentSplit.filter(t => isCashPayment(t.paymentMethod));
+  const onlinePayTxns = completedForPaymentSplit.filter(t => !isCashPayment(t.paymentMethod));
+  const totalCashSales = cashTxns.reduce((sum, t) => sum + t.totalAmount, 0);
+  const totalOnlinePaySales = onlinePayTxns.reduce((sum, t) => sum + t.totalAmount, 0);
 
   const totalNetSales = completedTxns.reduce((sum, t) => sum + t.totalAmount, 0);
   const totalCompletedOrders = completedTxns.length;
@@ -64,20 +132,22 @@ export const ReportsView: React.FC = () => {
   const totalVoidedOrders = voidedTxns.length;
 
   // Filtered transactions for display table
-  const displayedTransactions = transactions.filter(t => {
-    const isVoided = t.status === 'Voided' || t.status === 'void';
+  const displayedTransactions = scopedTxns.filter(t => {
+    const isVoided = isVoidedTx(t);
     if (statusFilter === 'COMPLETED') return !isVoided;
     if (statusFilter === 'VOIDED') return isVoided;
     return true;
   });
 
   const handleExportCSV = () => {
-    const headers = ['Ref', 'Date Time', 'Cashier', 'Payment Method', 'Status', 'Total Amount', 'Void Reason'];
+    const headers = ['Ref', 'Date Time', 'Cashier', 'Order Type', 'Payment Method', 'Payment Type', 'Status', 'Total Amount', 'Void Reason'];
     const rows = displayedTransactions.map(t => [
       t.transactionRef,
       new Date(t.createdAt).toLocaleString(),
       t.cashierName || 'Cashier',
+      isOnlineOrder(t) ? 'Online Order' : 'On-store',
       t.paymentMethod,
+      isCashPayment(t.paymentMethod) ? 'Cash' : 'Online Payment',
       t.status === 'Voided' ? 'VOIDED' : 'COMPLETED',
       t.totalAmount.toFixed(2),
       t.status === 'Voided' ? (t.voidReason || 'N/A') : 'N/A'
@@ -87,7 +157,11 @@ export const ReportsView: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `CommonBrew_SalesReport_${fromDate}_to_${toDate}.csv`);
+    const filterSuffix = [
+      orderTypeFilter === 'ONLINE_ORDER' ? 'OnlineOrders' : orderTypeFilter === 'IN_STORE' ? 'OnStore' : '',
+      paymentFilter === 'CASH' ? 'Cash' : paymentFilter === 'ONLINE' ? 'OnlinePayment' : ''
+    ].filter(Boolean).join('_');
+    link.setAttribute('download', `CommonBrew_SalesReport_${fromDate}_to_${toDate}${filterSuffix ? `_${filterSuffix}` : ''}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -228,7 +302,7 @@ export const ReportsView: React.FC = () => {
                 boxShadow: statusFilter === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
               }}
             >
-              All Records ({transactions.length})
+              All Records ({scopedTxns.length})
             </button>
             <button
               onClick={() => setStatusFilter('COMPLETED')}
@@ -264,6 +338,40 @@ export const ReportsView: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* Payment & Order Type Filters */}
+        <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', flexWrap: 'wrap', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6' }}>
+          <FilterTabs<PaymentFilter>
+            label="Payment:"
+            value={paymentFilter}
+            onChange={setPaymentFilter}
+            options={[
+              { value: 'ALL', label: 'All Payments' },
+              { value: 'CASH', label: 'Cash', color: '#16a34a' },
+              { value: 'ONLINE', label: 'Online Payment', color: '#2563eb' }
+            ]}
+          />
+          <FilterTabs<OrderTypeFilter>
+            label="Order Type:"
+            value={orderTypeFilter}
+            onChange={setOrderTypeFilter}
+            options={[
+              { value: 'ALL', label: 'All Orders' },
+              { value: 'IN_STORE', label: 'On-store', color: '#ea580c' },
+              { value: 'ONLINE_ORDER', label: 'Online Orders', color: '#7c3aed' }
+            ]}
+          />
+          {(paymentFilter !== 'ALL' || orderTypeFilter !== 'ALL') && (
+            <button
+              className="btn-outline btn-sm"
+              onClick={() => { setPaymentFilter('ALL'); setOrderTypeFilter('ALL'); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+            >
+              <i className="fa-solid fa-xmark" style={{ fontSize: '0.75rem' }}></i>
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       {/* KPI Row */}
@@ -273,8 +381,12 @@ export const ReportsView: React.FC = () => {
             <i className="fa-solid fa-money-bill-wave" style={{ fontSize: '1.25rem' }}></i>
           </div>
           <div className="kpi-info">
-            <p className="kpi-label">Net Sales Revenue</p>
-            <p className="kpi-value">₱{totalNetSales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+            <p className="kpi-label">
+              Net Sales Revenue
+              {paymentFilter !== 'ALL' && ` · ${paymentFilter === 'CASH' ? 'Cash' : 'Online Payment'}`}
+              {orderTypeFilter !== 'ALL' && ` · ${orderTypeFilter === 'ONLINE_ORDER' ? 'Online Orders' : 'On-store'}`}
+            </p>
+            <p className="kpi-value">{peso(totalNetSales)}</p>
           </div>
         </div>
 
@@ -312,6 +424,43 @@ export const ReportsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Cash vs Online Payment Totals (click a card to filter by it) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        {([
+          { key: 'CASH' as const, title: 'Cash Payments', sub: 'Cash, Cash on Pickup & Cash on Delivery', icon: 'fa-money-bill-1', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', total: totalCashSales, count: cashTxns.length },
+          { key: 'ONLINE' as const, title: 'Online Payments', sub: 'GCash & other e-wallets', icon: 'fa-mobile-screen-button', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', total: totalOnlinePaySales, count: onlinePayTxns.length }
+        ]).map(card => {
+          const active = paymentFilter === card.key;
+          return (
+            <button
+              key={card.key}
+              className="kpi-card"
+              onClick={() => setPaymentFilter(active ? 'ALL' : card.key)}
+              title={active ? 'Show all payments' : `Show ${card.title.toLowerCase()} only`}
+              style={{
+                cursor: 'pointer',
+                textAlign: 'left',
+                font: 'inherit',
+                width: '100%',
+                border: `2px solid ${active ? card.color : 'transparent'}`,
+                background: active ? card.bg : undefined
+              }}
+            >
+              <div className="kpi-icon-wrap" style={{ color: card.color, background: card.bg, border: `1px solid ${card.border}` }}>
+                <i className={`fa-solid ${card.icon}`} style={{ fontSize: '1.2rem' }}></i>
+              </div>
+              <div className="kpi-info">
+                <p className="kpi-label">{card.title}</p>
+                <p className="kpi-value" style={{ color: card.color }}>{peso(card.total)}</p>
+                <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                  {card.count} {card.count === 1 ? 'order' : 'orders'} · {card.sub}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Transactions Table */}
       <div className="table-card">
         <div className="table-header-row">
@@ -332,6 +481,7 @@ export const ReportsView: React.FC = () => {
                 <th>Transaction Ref</th>
                 <th>Date & Time</th>
                 <th>Cashier</th>
+                <th>Order Type</th>
                 <th>Payment</th>
                 <th>Status</th>
                 <th>Total Amount</th>
@@ -349,7 +499,31 @@ export const ReportsView: React.FC = () => {
                     <td>{new Date(t.createdAt).toLocaleString()}</td>
                     <td>{t.cashierName || 'Cashier'}</td>
                     <td>
-                      <span className="kpi-badge blue">{t.paymentMethod}</span>
+                      {isOnlineOrder(t) ? (
+                        <span style={{ background: '#f5f3ff', color: '#7c3aed', border: '1px solid #c4b5fd', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                          <i className="fa-solid fa-globe" style={{ fontSize: '0.7rem' }}></i>
+                          Online
+                        </span>
+                      ) : (
+                        <span style={{ background: '#fff7ed', color: '#ea580c', border: '1px solid #fdba74', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', whiteSpace: 'nowrap' }}>
+                          <i className="fa-solid fa-store" style={{ fontSize: '0.7rem' }}></i>
+                          On-store
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{
+                        background: isCashPayment(t.paymentMethod) ? '#f0fdf4' : '#eff6ff',
+                        color: isCashPayment(t.paymentMethod) ? '#16a34a' : '#2563eb',
+                        border: `1px solid ${isCashPayment(t.paymentMethod) ? '#86efac' : '#93c5fd'}`,
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {t.paymentMethod}
+                      </span>
                     </td>
                     <td>
                       {isVoided ? (
