@@ -373,7 +373,7 @@ export const LegalDocumentsModal: React.FC<LegalDocumentsModalProps> = ({
               {/* Contact Footer */}
               <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem', marginTop: '2rem', fontSize: '0.8rem', color: '#64748b' }}>
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>CommonBrew Coffee Taytay</div>
-                <div>Manila East Road, Brgy. San Juan, Taytay, Rizal • Contact: 0947-496-0778 • Email: hello@commonbrewtaytay.com</div>
+                <div>Manila East Road, Brgy. San Juan, Taytay, Rizal • Contact: 0947-496-0778 • Email: commonbrewtaytay@gmail.com</div>
               </div>
             </div>
           ) : (
@@ -510,10 +510,28 @@ export const LegalDocumentsModal: React.FC<LegalDocumentsModalProps> = ({
                 </p>
               </section>
 
-              {/* 9. User Rights (RA 10173) */}
+              {/* 9. Cookies and Browser Storage */}
               <section style={{ marginBottom: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
-                  9. User Rights
+                  9. Cookies and Browser Storage
+                </h3>
+                <p style={{ margin: '0 0 0.5rem' }}>
+                  Our website uses cookies and similar browser storage (local storage) only for features that are necessary for the website to work:
+                </p>
+                <ul style={{ paddingLeft: '1.25rem', margin: '0 0 0.5rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <li><strong>Sign-in session</strong> — Keeps you signed in to your customer or staff account. Sessions expire automatically.</li>
+                  <li><strong>Saved delivery address</strong> — Pre-fills your address at checkout.</li>
+                  <li><strong>Preferences</strong> — Remembers your display theme and that you have seen this cookie notice.</li>
+                </ul>
+                <p style={{ margin: 0 }}>
+                  We do <strong>not</strong> use advertising, analytics, or tracking cookies, and we do not share this stored information with third parties. You can clear it at any time through your browser settings; signing out also removes your session.
+                </p>
+              </section>
+
+              {/* 10. User Rights (RA 10173) */}
+              <section style={{ marginBottom: '1.75rem' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+                  10. User Rights
                 </h3>
                 <p style={{ margin: '0 0 0.5rem' }}>
                   Under the Philippine Data Privacy Act of 2012 (RA 10173), you are entitled to the following rights:
@@ -526,10 +544,10 @@ export const LegalDocumentsModal: React.FC<LegalDocumentsModalProps> = ({
                 </ul>
               </section>
 
-              {/* 10. Contact Information */}
+              {/* 11. Contact Information */}
               <section style={{ marginBottom: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
-                  10. Contact Information
+                  11. Contact Information
                 </h3>
                 <p style={{ margin: '0 0 0.75rem' }}>
                   For privacy concerns, data inquiries, or requests related to your personal information, you may contact CommonBrew Coffee Taytay through the following:
@@ -537,7 +555,7 @@ export const LegalDocumentsModal: React.FC<LegalDocumentsModalProps> = ({
                 <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.85rem' }}>
                   <div><strong>Store Name:</strong> CommonBrew Coffee Taytay</div>
                   <div><strong>Contact Nos.:</strong> 0947-496-0778 / (02) 8983-8038</div>
-                  <div><strong>Email:</strong> hello@commonbrewtaytay.com / commonbrewcoffee@gmail.com</div>
+                  <div><strong>Email:</strong> commonbrewtaytay@gmail.com </div>
                   <div><strong>Address:</strong> Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)</div>
                   <div><strong>Facebook Page:</strong> CommonBrew Taytay</div>
                   <div><strong>Operating Hours:</strong> Monday to Sunday, 10:00 AM – 10:00 PM</div>

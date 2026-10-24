@@ -61,6 +61,7 @@ import {
 } from 'lucide-react';
 import { useRealtimeSync } from '../lib/realtimeSync';
 import { LegalDocumentsModal } from './LegalDocumentsModal';
+import { CookieConsentBanner } from './CookieConsentBanner';
 
 interface Props {
   onSwitchToStaffLogin: () => void;
@@ -3613,6 +3614,14 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
         isOpen={isChatbotOpen}
         onClose={() => setIsChatbotOpen(false)}
         customer={customer}
+      />
+
+      {/* Cookie notice (shown until the visitor accepts) */}
+      <CookieConsentBanner
+        onLearnMore={() => {
+          setLegalModalTab('privacy');
+          setShowLegalModal(true);
+        }}
       />
 
       {/* Terms and Conditions & Privacy Policy Legal Modal */}
