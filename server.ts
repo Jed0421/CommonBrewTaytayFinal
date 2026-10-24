@@ -3884,7 +3884,7 @@ async function startServer() {
           (event) => {
             broadcastRealtimeEvent(event);
           },
-          30000
+          300000
         );
       } catch (err) {
         console.error('[Startup Background Init Error]', err);
