@@ -1045,6 +1045,63 @@ async function sendRealEmail(toEmail: string, subject: string, htmlContent: stri
   const plainText = textContent || htmlContent.replace(/<[^>]+>/g, '').trim();
   let lastError = '';
 
+  
+  // Gmail API over HTTPS: works on hosts that block SMTP ports (e.g. Render free instances)
+  const gmailClientId = (process.env.GMAIL_CLIENT_ID || '').trim();
+  const gmailClientSecret = (process.env.GMAIL_CLIENT_SECRET || '').trim();
+  const gmailRefreshToken = (process.env.GMAIL_REFRESH_TOKEN || '').trim();
+  if (gmailClientId && gmailClientSecret && gmailRefreshToken) {
+    try {
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: gmailClientId,
+          client_secret: gmailClientSecret,
+          refresh_token: gmailRefreshToken,
+          grant_type: 'refresh_token'
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
+      const tokenData: any = await tokenRes.json().catch(() => ({}));
+      if (!tokenRes.ok || !tokenData.access_token) {
+        throw new Error(`token refresh failed: ${tokenData.error_description || tokenData.error || tokenRes.statusText}`);
+      }
+
+      // Build the raw MIME message with nodemailer, then hand it to the Gmail API
+      const nodemailer = await import('nodemailer');
+      const composer = nodemailer.default.createTransport({ streamTransport: true, buffer: true });
+      const built: any = await composer.sendMail({
+        from: `"CommonBrew Taytay" <${smtpUser}>`,
+        replyTo: smtpUser,
+        to: toEmail,
+        subject,
+        text: plainText,
+        html: htmlContent
+      });
+
+      const sendRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenData.access_token}`
+        },
+        body: JSON.stringify({ raw: Buffer.from(built.message).toString('base64url') }),
+        signal: AbortSignal.timeout(15000)
+      });
+      const sendData: any = await sendRes.json().catch(() => ({}));
+      if (sendRes.ok) {
+        console.log(`[Gmail API Success] Email delivered to ${toEmail}. Message ID: ${sendData.id}`);
+        return { sent: true, provider: 'CommonBrew Gmail (API)' };
+      }
+      throw new Error(sendData.error?.message || sendRes.statusText);
+    } catch (e: any) {
+      lastError = `Gmail API: ${e.message || e}`;
+      console.error('[Gmail API Failed]', lastError);
+    }
+  }
+
+
   if (smtpUser && smtpPass) {
     const nodemailer = await import('nodemailer');
 
