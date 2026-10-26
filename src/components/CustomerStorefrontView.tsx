@@ -5,7 +5,7 @@ import { CustomerBotDrawer } from './CustomerBotDrawer';
 import { AccessPortalModal } from './AccessPortalModal';
 import heroBg from '../assets/images/commonbrew_hero_1784908762215.webp';
 import storeImg from '../assets/images/commonbrew_taytay_store_facade_1784910285403.webp';
-import gcashQrImg from '../assets/images/gcash_qr_code_only.jpg';
+import gcashQrImg from '../assets/images/gcash_qr_code.png';
 import { getVerseOfTheDay } from '../data/bibleVerses';
 import { commonbrewAddons, getAddonPrice, getAvailableAddonsForProduct } from '../data/commonbrewData';
 import { getCategoryDrinkImage, getProductImage } from '../data/drinkImages';

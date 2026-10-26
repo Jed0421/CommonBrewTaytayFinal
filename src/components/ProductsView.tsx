@@ -4,6 +4,36 @@ import { Product, Category, InventoryItem } from '../types';
 import { getCategoryDrinkImage, getProductImage } from '../data/drinkImages';
 import { useRealtimeSync } from '../lib/realtimeSync';
 
+// Product photos are stored inline in Supabase, and every server start downloads them all.
+// Keep them small: max 480px, WebP (falls back to JPEG, or PNG for transparent PNGs).
+const MAX_IMAGE_DIM = 480;
+const OVERSIZED_IMAGE_CHARS = 60_000;
+
+const compressImageDataUrl = (dataUrl: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, MAX_IMAGE_DIM / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas not supported'));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let compressed = canvas.toDataURL('image/webp', 0.8);
+      if (!compressed.startsWith('data:image/webp')) {
+        compressed = dataUrl.startsWith('data:image/png')
+          ? canvas.toDataURL('image/png')
+          : canvas.toDataURL('image/jpeg', 0.82);
+      }
+      resolve(compressed.length < dataUrl.length ? compressed : dataUrl);
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = dataUrl;
+  });
+
+
 export const ProductsView: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -29,6 +59,7 @@ export const ProductsView: React.FC = () => {
   const [recipeItems, setRecipeItems] = useState<{ inventoryItemId: string; quantity: number }[]>([]);
   const [archiveTarget, setArchiveTarget] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState('');
+  const hasOptimizedImages = useRef(false);
 
   useEffect(() => {
     fetchData();
@@ -51,7 +82,11 @@ export const ProductsView: React.FC = () => {
       const cats = catRes && catRes.ok ? await catRes.json().catch(() => []) : [];
       const invs = invRes && invRes.ok ? await invRes.json().catch(() => []) : [];
 
-      if (Array.isArray(prods)) setProducts(prods.filter((p: Product) => p.isAvailable));
+      if (Array.isArray(prods)) {
+        setProducts(prods.filter((p: Product) => p.isAvailable));
+        optimizeOversizedImages(prods);
+      }
+
       if (Array.isArray(cats)) {
         setCategories(cats);
         if (cats.length > 0) setCategoryId(cats[0].id);
@@ -61,6 +96,34 @@ export const ProductsView: React.FC = () => {
       console.warn('[ProductsView] Error fetching data:', e);
     }
   };
+
+    // One-time cleanup: shrink product photos that were saved before compression was tightened.
+  const optimizeOversizedImages = async (prods: Product[]) => {
+    if (hasOptimizedImages.current) return;
+    hasOptimizedImages.current = true;
+
+    const oversized = prods.filter(p => p.imageUrl?.startsWith('data:') && p.imageUrl.length > OVERSIZED_IMAGE_CHARS);
+    let optimizedCount = 0;
+    for (const p of oversized) {
+      try {
+        const compressed = await compressImageDataUrl(p.imageUrl!);
+        if (compressed.length >= p.imageUrl!.length) continue;
+        const res = await fetch(`/api/products/${p.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: compressed })
+        });
+        if (res.ok) optimizedCount++;
+      } catch (e) {
+        console.warn(`[ProductsView] Could not optimize image for ${p.name}:`, e);
+      }
+    }
+    if (optimizedCount > 0) {
+      showToast(`Optimized ${optimizedCount} product photo(s) to reduce data usage.`);
+      fetchData();
+    }
+  };
+
 
   const processImageFile = (file: File) => {
     if (!file) return;
@@ -81,45 +144,10 @@ export const ProductsView: React.FC = () => {
         return;
       }
 
-      // Optimize image dimensions to max 800px for crisp, lightweight storage
-      const img = new Image();
-      img.onload = () => {
-        const maxDim = 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const outputFormat = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-          const compressed = canvas.toDataURL(outputFormat, 0.88);
-          setImageUrl(compressed);
-        } else {
-          setImageUrl(rawDataUrl);
-        }
-        setIsCompressing(false);
-      };
-
-      img.onerror = () => {
-        setImageUrl(rawDataUrl);
-        setIsCompressing(false);
-      };
-
-      img.src = rawDataUrl;
+        compressImageDataUrl(rawDataUrl)
+        .then(setImageUrl)
+        .catch(() => setImageUrl(rawDataUrl))
+        .finally(() => setIsCompressing(false));
     };
 
     reader.onerror = () => {
