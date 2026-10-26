@@ -642,52 +642,7 @@ function restoreInventoryForOrder(
 const transactions: TransactionRecord[] = [];
 const inventoryLogs: InventoryLogRecord[] = [];
 
-// Generate sample transactions for today and past week
-const seedTransactions = () => {
-  const now = new Date();
-  const sampleProducts = [products[0], products[1], products[3], products[5]];
 
-  for (let i = 6; i >= 0; i--) {
-    const txDate = new Date();
-    txDate.setDate(now.getDate() - i);
-    const count = i === 0 ? 8 : Math.floor(Math.random() * 6) + 4;
-
-    for (let j = 0; j < count; j++) {
-      const p = sampleProducts[j % sampleProducts.length];
-      const qty = Math.floor(Math.random() * 2) + 1;
-      const total = p.price * qty;
-      const refNum = `CB-${txDate.getFullYear()}${String(txDate.getMonth() + 1).padStart(2, '0')}${String(txDate.getDate()).padStart(2, '0')}-${1000 + i * 10 + j}`;
-
-      transactions.push({
-        id: `tx-${i}-${j}`,
-        transactionRef: refNum,
-        cashierId: 'u-2',
-        cashierName: 'Maria Cashier',
-        paymentMethod: j % 3 === 0 ? 'GCash' : 'Cash',
-        subtotal: total,
-        totalAmount: total,
-        cashTendered: j % 3 === 0 ? total : total + 50,
-        changeAmount: j % 3 === 0 ? 0 : 50,
-        status: 'completed',
-        createdAt: txDate.toISOString(),
-        items: [
-          {
-            id: `txi-${i}-${j}`,
-            transactionId: `tx-${i}-${j}`,
-            productId: p.id,
-            productName: p.name,
-            unitPrice: p.price,
-            quantity: qty,
-            subtotal: total,
-            isUpsize: false,
-            addons: []
-          }
-        ]
-      });
-    }
-  }
-};
-seedTransactions();
 
 // ── Isolated Multi-Device Session Stores ──────────────────────
 interface StaffSession {
@@ -2730,7 +2685,7 @@ app.post('/api/pos/transaction', requireStaff, (req, res) => {
     id: `tx-${Date.now()}`,
     transactionRef: refCode,
     cashierId: staffUser?.id || 'u-2',
-    cashierName: staffUser?.fullName || 'Maria Cashier',
+    cashierName: staffUser?.fullName || 'Cashier',
     paymentMethod: paymentMethod || 'Cash',
     subtotal,
     totalAmount,
@@ -2758,7 +2713,7 @@ app.post('/api/pos/transaction', requireStaff, (req, res) => {
   syncTransactionToSupabase(newTx).catch(err => console.error('Supabase tx sync error:', err));
 
   // Deduct inventory stock based on recipes
-  deductInventoryForOrder(items, refCode, staffUser?.fullName || 'Maria Cashier');
+  deductInventoryForOrder(items, refCode, staffUser?.fullName || 'Cashier');
 
   res.json({
     success: true,

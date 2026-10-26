@@ -190,7 +190,7 @@ export async function hydrateFromSupabase(state: {
             id: row.id,
             transactionRef: row.ref_code,
             cashierId: 'u-1',
-            cashierName: row.cashier_name || 'Maria Cashier',
+            cashierName: row.cashier_name || 'Cashier',
             paymentMethod: row.payment_method || 'Cash',
             subtotal: Number(row.subtotal) || 0,
             totalAmount: Number(row.total) || 0,
@@ -608,7 +608,7 @@ export async function syncTransactionToSupabase(tx: any) {
       amount_tendered: tx.cashTendered !== undefined && tx.cashTendered !== null ? Number(tx.cashTendered) : (tx.totalAmount || 0),
       change_amount: tx.changeAmount !== undefined && tx.changeAmount !== null ? Number(tx.changeAmount) : 0,
       payment_method: tx.paymentMethod || 'Cash',
-      cashier_name: tx.cashierName || 'Maria Cashier',
+      cashier_name: tx.cashierName || 'Cashier',
       is_voided: isVoided,
       void_reason: tx.voidReason || null,
       created_at: tx.createdAt || new Date().toISOString()

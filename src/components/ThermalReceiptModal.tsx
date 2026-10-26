@@ -44,7 +44,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
   const storeName = receipt.storeName || 'COMMONBREW COFFEE TAYTAY';
   const storeAddress = receipt.storeAddress || 'Manila East Road, Brgy. San Juan, Taytay, Rizal';
   const storePhone = receipt.storePhone || '0947-496-0778';
-  const cashierName = receipt.cashierName || 'Maria Cashier';
+  const cashierName = receipt.cashierName || 'Cashier';
 
   // Tax calculations (Philippine 12% EVAT standard)
   const vatableSales = receipt.totalAmount / 1.12;

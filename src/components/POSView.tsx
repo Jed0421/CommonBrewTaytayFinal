@@ -18,7 +18,7 @@ export const POSView: React.FC = () => {
   const [lastReceipt, setLastReceipt] = useState<any>(null);
   const [showThermalReceipt, setShowThermalReceipt] = useState(false);
   const [thermalReceiptData, setThermalReceiptData] = useState<ThermalReceiptData | null>(null);
-  const [cashierName, setCashierName] = useState<string>('Maria Cashier');
+  const [cashierName, setCashierName] = useState<string>('Cashier');
   const [viewReceiptModalImage, setViewReceiptModalImage] = useState<string | null>(null);
 
   // Online Orders State
