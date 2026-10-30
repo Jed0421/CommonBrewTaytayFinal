@@ -423,8 +423,8 @@ export async function migrateDataToSupabase() {
         address: 'Manila East Road, Brgy. San Juan, Taytay, Rizal',
         phone: '0917-123-4567',
         email: 'hello@commonbrew.ph',
-        opening_time: '10:00 AM',
-        closing_time: '10:00 PM',
+        opening_time: '11:00 AM',
+        closing_time: '9:00 PM',
         is_store_open: true,
         announcement: 'Freshly brewed artisan drinks and warm snacks prepared daily in Taytay, Rizal!'
       });
