@@ -1033,6 +1033,321 @@ app.get('/api/auth/me', (req, res) => {
 const phoneOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: boolean }> = new Map();
 const emailOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: boolean }> = new Map();
 
+
+// Shared CommonBrew email presentation.
+// Escape dynamic values before inserting them into HTML.
+function emailEscape(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, char => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+
+    return entities[char];
+  });
+}
+
+function emailMoney(value: number): string {
+  return `₱${Number(value).toLocaleString('en-PH', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function emailParagraph(content: string): string {
+  return `
+    <p style="margin:0 0 18px;font-size:15px;line-height:25px;color:#5e554e;">
+      ${content}
+    </p>
+  `;
+}
+
+function commonBrewEmail(options: {
+  preview: string;
+  category: string;
+  title: string;
+  body: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>${emailEscape(options.title)}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f0eb;">
+  <div style="display:none;font-size:1px;line-height:1px;color:#f3f0eb;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+    ${emailEscape(options.preview)}
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    bgcolor="#f3f0eb" style="border-collapse:collapse;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <!--[if mso]>
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0">
+        <tr><td>
+        <![endif]-->
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+          bgcolor="#fffdf9"
+          style="max-width:560px;border-collapse:collapse;border:1px solid #ded7ce;font-family:Arial,Helvetica,sans-serif;color:#30251e;">
+
+          <tr>
+            <td style="padding:28px 24px 24px;border-top:4px solid #493326;border-bottom:1px solid #e6dfd6;">
+              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:34px;color:#30251e;">
+                CommonBrew<span style="color:#896e55;">.</span>
+              </p>
+              <p style="margin:6px 0 0;font-size:10px;line-height:16px;letter-spacing:2px;color:#75685d;">
+                COFFEE &amp; TEA &nbsp;/&nbsp; TAYTAY
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:30px 24px 28px;">
+              <p style="margin:0 0 12px;font-size:10px;line-height:16px;font-weight:bold;letter-spacing:2px;color:#796651;text-transform:uppercase;">
+                ${emailEscape(options.category)}
+              </p>
+              <h1 style="margin:0 0 22px;font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:38px;font-weight:normal;color:#30251e;">
+                ${emailEscape(options.title)}
+              </h1>
+              ${options.body}
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:22px 24px;border-top:1px solid #e6dfd6;">
+              <p style="margin:0 0 8px;font-size:12px;line-height:20px;color:#5e554e;">
+                Need a hand? We're happy to help.
+              </p>
+              <p style="margin:0;font-size:12px;line-height:22px;">
+                <a href="tel:+639474960778"
+                  style="color:#493326;text-decoration:underline;">0947 496 0778</a>
+                <br>
+                <a href="mailto:commonbrewtaytay@gmail.com"
+                  style="color:#493326;text-decoration:underline;word-break:break-word;">commonbrewtaytay@gmail.com</a>
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td bgcolor="#eee9e1" style="padding:20px 24px;">
+              <p style="margin:0;font-size:11px;line-height:19px;color:#6f6256;">
+                <strong>CommonBrew Taytay</strong><br>
+                Unit 7 Leoncio Commercial Bldg, Taytay, Rizal
+              </p>
+              <p style="margin:12px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:20px;font-style:italic;color:#6f6256;">
+                “Every good and perfect gift is from above.”<br>
+                <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-style:normal;">James 1:17</span>
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!--[if mso]>
+        </td></tr></table>
+        <![endif]-->
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function commonBrewCodeEmail(options: {
+  title: string;
+  introduction: string;
+  code: string;
+  notice: string;
+}): string {
+  return commonBrewEmail({
+    preview: `${options.title}. Your verification code expires in 10 minutes.`,
+    category: 'Account security',
+    title: options.title,
+    body: `
+      ${emailParagraph(emailEscape(options.introduction))}
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+        style="border-collapse:collapse;margin:24px 0;">
+        <tr>
+          <td align="center" bgcolor="#eee9e1"
+            style="padding:22px 12px;border:1px solid #ded7ce;">
+            <p style="margin:0 0 10px;font-size:10px;line-height:16px;letter-spacing:2px;color:#75685d;">
+              YOUR VERIFICATION CODE
+            </p>
+            <p style="margin:0;font-family:'Courier New',monospace;font-size:34px;line-height:44px;font-weight:bold;letter-spacing:5px;color:#30251e;">
+              ${emailEscape(options.code)}
+            </p>
+            <p style="margin:10px 0 0;font-size:12px;line-height:20px;color:#6f6256;">
+              Valid for 10 minutes
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      ${emailParagraph('Enter this code on the verification screen to continue. Do not share it with anyone.')}
+
+      <p style="margin:0;font-size:12px;line-height:21px;color:#75685d;">
+        ${emailEscape(options.notice)}
+      </p>
+    `,
+  });
+}
+
+function commonBrewOrderEmail(order: OnlineOrderRecord): string {
+  const delivery = order.orderType === 'Delivery';
+  const pickup = order.orderType === 'Pickup';
+
+  const title = delivery
+    ? 'Your order is on its way.'
+    : pickup
+    ? 'Ready when you are.'
+    : 'Your order is ready.';
+
+  const instructions = delivery
+    ? 'Your order is on its way to your delivery address. Please keep your phone nearby for updates from your rider.'
+    : pickup
+    ? 'Your drinks and treats are ready at CommonBrew Taytay. Show the order reference below at the counter to collect them.'
+    : order.tableNumber
+    ? `Your order is ready for Table ${emailEscape(order.tableNumber)}. Our team will bring it over shortly.`
+    : 'Your order is ready. Our team will help you collect it.';
+
+  const rows = order.items.map(item => {
+    const details: string[] = [];
+
+    if (item.sugarLevel || item.iceLevel) {
+      details.push(
+        `Sugar: ${emailEscape(item.sugarLevel || 'Regular')} · Ice: ${emailEscape(item.iceLevel || 'Regular')}`
+      );
+    }
+
+    if (item.addons?.length) {
+      details.push(`Add-ons: ${emailEscape(item.addons.join(', '))}`);
+    }
+
+    if (item.specialInstructions) {
+      details.push(`Note: ${emailEscape(item.specialInstructions)}`);
+    }
+
+    return `
+      <tr>
+        <td style="padding:16px 10px 16px 0;border-bottom:1px solid #e6dfd6;vertical-align:top;overflow-wrap:anywhere;">
+          <p style="margin:0;font-size:14px;line-height:22px;font-weight:bold;color:#30251e;">
+            ${emailEscape(item.productName)}
+          </p>
+          ${details.map(detail => `
+            <p style="margin:4px 0 0;font-size:12px;line-height:19px;color:#75685d;">
+              ${detail}
+            </p>
+          `).join('')}
+        </td>
+        <td align="center" style="padding:16px 4px;border-bottom:1px solid #e6dfd6;vertical-align:top;font-size:13px;line-height:22px;color:#5e554e;">
+          ${emailEscape(item.quantity)}
+        </td>
+        <td align="right" style="padding:16px 0 16px 4px;border-bottom:1px solid #e6dfd6;vertical-align:top;font-size:13px;line-height:22px;color:#30251e;white-space:nowrap;">
+          ${emailMoney(item.subtotal)}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const totalRow = (label: string, amount: string, final = false) => `
+    <tr>
+      <td style="padding:${final ? '16px' : '6px'} 0;font-size:${final ? '17px' : '13px'};line-height:22px;color:#30251e;${final ? 'border-top:1px solid #b9aa98;font-weight:bold;' : ''}">
+        ${label}
+      </td>
+      <td align="right" style="padding:${final ? '16px' : '6px'} 0;font-size:${final ? '17px' : '13px'};line-height:22px;color:#30251e;white-space:nowrap;${final ? 'border-top:1px solid #b9aa98;font-weight:bold;' : ''}">
+        ${amount}
+      </td>
+    </tr>
+  `;
+
+  return commonBrewEmail({
+    preview: `${title} Order #${order.orderRef}`,
+    category: `${order.orderType === 'DineIn' ? 'Dine-in' : order.orderType} order`,
+    title,
+    body: `
+      ${emailParagraph(`Hello ${emailEscape(order.customerName)},`)}
+      ${emailParagraph(instructions)}
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+        style="border-collapse:collapse;margin:24px 0;">
+        <tr>
+          <td bgcolor="#eee9e1" style="padding:16px 18px;">
+            <p style="margin:0 0 6px;font-size:10px;line-height:16px;letter-spacing:2px;color:#75685d;">
+              ORDER REFERENCE
+            </p>
+            <p style="margin:0;font-family:'Courier New',monospace;font-size:21px;line-height:28px;font-weight:bold;color:#30251e;word-break:break-word;">
+              #${emailEscape(order.orderRef)}
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      ${delivery ? `
+        <p style="margin:0 0 8px;font-size:11px;line-height:18px;font-weight:bold;letter-spacing:1px;color:#796651;">
+          DELIVERY DETAILS
+        </p>
+        ${emailParagraph(`
+          ${emailEscape(order.customerName)}<br>
+          ${emailEscape(order.deliveryAddress || 'Address not provided')}<br>
+          ${emailEscape(order.customerPhone)}
+        `)}
+      ` : ''}
+
+      <table width="100%" cellpadding="0" cellspacing="0"
+        aria-label="Order items"
+        style="border-collapse:collapse;table-layout:fixed;">
+        <thead>
+          <tr>
+            <th scope="col" width="60%" align="left"
+              style="padding:10px 0;border-bottom:1px solid #b9aa98;font-size:10px;letter-spacing:1px;color:#75685d;">
+              ITEM
+            </th>
+            <th scope="col" width="12%" align="center"
+              style="padding:10px 0;border-bottom:1px solid #b9aa98;font-size:10px;color:#75685d;">
+              QTY
+            </th>
+            <th scope="col" width="28%" align="right"
+              style="padding:10px 0;border-bottom:1px solid #b9aa98;font-size:10px;letter-spacing:1px;color:#75685d;">
+              AMOUNT
+            </th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+        style="border-collapse:collapse;margin-top:14px;">
+        ${totalRow('Subtotal', emailMoney(order.subtotal))}
+        ${order.deliveryFee > 0
+          ? totalRow('Delivery fee', emailMoney(order.deliveryFee))
+          : ''}
+        ${(order.loyaltyDiscount || 0) > 0
+          ? totalRow('Loyalty discount', `−${emailMoney(order.loyaltyDiscount!)}`)
+          : ''}
+        ${totalRow('Total', emailMoney(order.totalAmount), true)}
+      </table>
+
+      <p style="margin:0;font-size:12px;line-height:21px;color:#75685d;">
+        Payment method: ${emailEscape(order.paymentMethod)}
+        ${order.gcashReferenceNumber
+          ? `<br>GCash reference: ${emailEscape(order.gcashReferenceNumber)}`
+          : ''}
+        ${order.gcashReceiptImage ? '<br>GCash receipt submitted.' : ''}
+      </p>
+
+      <p style="margin:24px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:18px;line-height:27px;color:#493326;">
+        Thank you for choosing CommonBrew.
+      </p>
+    `,
+  });
+}
 // Helper to send real emails via Nodemailer (Gmail SMTP) or Resend
 // Fail fast instead of hanging for minutes when Gmail is slow or unreachable
 const SMTP_TIMEOUTS = { connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 20000 };
@@ -1350,18 +1665,20 @@ app.post('/api/auth/send-email-otp', otpSendLimiter, async (req, res) => {
   const isStaff = isStaffFlow;
   const flowTitle = isAdmin ? 'Administrator Email Update' : isStaff ? 'Staff Account Verification' : 'Email Verification';
 
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #ebd3bb; border-radius: 12px; background: #fffcf7;">
-      <h2 style="color: #3d2314; margin-top: 0;">☕ CommonBrew Taytay - ${flowTitle}</h2>
-      <p style="font-size: 15px; color: #4b5563;">Your 6-digit verification code is:</p>
-      <div style="background: #3d2314; color: #ffffff; font-size: 32px; font-weight: 900; letter-spacing: 6px; padding: 16px; text-align: center; border-radius: 8px; margin: 20px 0;">
-        ${generatedOtp}
-      </div>
-      <p style="font-size: 13px; color: #6b7280;">This code will expire in 10 minutes. If you did not request this email, please ignore this message.</p>
-      <hr style="border: none; border-top: 1px solid #ebd3bb; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #9ca3af; text-align: center;">CommonBrew Taytay • Unit 7 Leoncio Commercial Bldg, Taytay, Rizal</p>
-    </div>
-  `;
+  const emailHtml = commonBrewCodeEmail({
+    title: isAdmin
+      ? 'Confirm your new email.'
+      : isStaff
+      ? 'Verify your staff account.'
+      : 'Verify your email.',
+    introduction: isAdmin
+      ? 'Use the code below to confirm the new email address for your administrator account.'
+      : isStaff
+      ? 'Use the code below to verify your email address for your CommonBrew staff account.'
+      : 'Welcome to CommonBrew. Use the code below to verify your email address.',
+    code: generatedOtp,
+    notice: 'If you did not request this verification, you can ignore this email.',
+  });
 
   const plainText = `CommonBrew Taytay ${flowTitle}\n\nYour 6-digit verification code is: ${generatedOtp}\n\nThis code will expire in 10 minutes.`;
 
@@ -1464,19 +1781,12 @@ app.post('/api/auth/forgot-password-send-otp', otpSendLimiter, async (req, res) 
     isVerified: false
   });
 
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #ebd3bb; border-radius: 12px; background: #fffcf7;">
-      <h2 style="color: #ea580c; margin-top: 0;">🔒 CommonBrew Taytay - Password Reset Request</h2>
-      <p style="font-size: 15px; color: #4b5563;">Hello ${existingCust.fullName},</p>
-      <p style="font-size: 15px; color: #4b5563;">We received a request to reset your password. Use the 6-digit verification code below to reset your password:</p>
-      <div style="background: #ea580c; color: #ffffff; font-size: 32px; font-weight: 900; letter-spacing: 6px; padding: 16px; text-align: center; border-radius: 8px; margin: 20px 0;">
-        ${generatedOtp}
-      </div>
-      <p style="font-size: 13px; color: #6b7280;">This verification code will expire in 10 minutes. If you did not request a password reset, please ignore this email.</p>
-      <hr style="border: none; border-top: 1px solid #ebd3bb; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #9ca3af; text-align: center;">CommonBrew Taytay • Unit 7 Leoncio Commercial Bldg, Taytay, Rizal</p>
-    </div>
-  `;
+  const emailHtml = commonBrewCodeEmail({
+    title: 'Reset your password.',
+    introduction: `Hello ${existingCust.fullName}, we received a request to reset your CommonBrew password. Use the code below to continue.`,
+    code: generatedOtp,
+    notice: 'If you did not request a password reset, you can ignore this email. Your password will remain unchanged.',
+  });
 
   const plainText = `CommonBrew Taytay Password Reset Request\n\nYour 6-digit verification code is: ${generatedOtp}\n\nThis code will expire in 10 minutes.`;
 
@@ -2212,140 +2522,14 @@ app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
       : `Your order ${itemsSummary} is ready for your table!`;
 
     const emailSubject = isDelivery
-      ? `🚚 Your CommonBrew order is on the way! (${itemsSummary})`
+      ? `Your CommonBrew order is on its way — #${order.orderRef}`
       : isPickup
-      ? `☕ Your CommonBrew order is ready for pickup! (${itemsSummary})`
-      : `☕ Your CommonBrew order is ready! (${itemsSummary})`;
+      ? `Ready for pickup — CommonBrew #${order.orderRef}`
+      : `Your CommonBrew order is ready — #${order.orderRef}`;
 
-    // 3. Construct premium, mobile-responsive HTML email
-    const emailHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fdfbf7; border-radius: 16px; overflow: hidden; border: 1px solid #e7dfd5; box-shadow: 0 6px 24px rgba(0,0,0,0.06); color: #1f2937;">
-        <!-- Brand Header -->
-        <div style="background: linear-gradient(135deg, #2b1810 0%, #3d2314 60%, #54331a 100%); color: #ffffff; padding: 30px 24px; text-align: center; border-bottom: 4px solid #d97706;">
-          <div style="display: inline-block; background: #ffffff; color: #2b1810; font-weight: 900; font-size: 13px; padding: 4px 14px; border-radius: 20px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);">
-            CommonBrew Taytay
-          </div>
-          <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: #fef3c7;">
-            ${isDelivery ? '🚚 Order Dispatched & On The Way!' : isPickup ? '☕ Order Ready for Pickup!' : '☕ Order Ready to Serve!'}
-          </h1>
-          <p style="margin: 8px 0 0; color: #e5e7eb; font-size: 14px;">
-            Order Reference: <strong style="color: #fbbf24; font-size: 15px; letter-spacing: 0.03em;">#${order.orderRef}</strong>
-          </p>
-        </div>
-
-        <div style="padding: 24px;">
-          <!-- Prominent Notification Banner -->
-          <div style="background: ${isDelivery ? '#eff6ff' : '#f0fdf4'}; border-left: 5px solid ${isDelivery ? '#2563eb' : '#16a34a'}; border-radius: 12px; padding: 18px 20px; margin-bottom: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-            <p style="margin: 0 0 8px; font-size: 17px; font-weight: 800; color: ${isDelivery ? '#1e40af' : '#15803d'}; line-height: 1.4;">
-              ${deliveryHeadline}
-            </p>
-            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #374151;">
-              ${isDelivery
-                ? `Hello <strong>${order.customerName}</strong>! Our kitchen barista has just completed preparing your order and our delivery rider is now on the way to your delivery address. Please keep your phone reachable for any rider updates.`
-                : isPickup
-                ? `Hello <strong>${order.customerName}</strong>! Your freshly handcrafted beverages and treats are packaged and waiting for you at our CommonBrew Taytay stall. Please present your order ref <strong>#${order.orderRef}</strong> to the counter.`
-                : `Hello <strong>${order.customerName}</strong>! Your order is ready and is being brought over to Table ${order.tableNumber || '1'}. Sit back, relax, and enjoy!`
-              }
-            </p>
-          </div>
-
-          <!-- Delivery Details Card (if Delivery) -->
-          ${isDelivery ? `
-            <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-              <h3 style="margin: 0 0 10px; font-size: 13px; font-weight: 800; color: #1f2937; text-transform: uppercase; letter-spacing: 0.04em;">
-                📍 Destination & Contact
-              </h3>
-              <div style="font-size: 14px; color: #4b5563; line-height: 1.6;">
-                <div><strong>Customer:</strong> ${order.customerName}</div>
-                <div><strong>Mobile Phone:</strong> ${order.customerPhone}</div>
-                <div><strong>Delivery Address:</strong> ${order.deliveryAddress || 'Taytay, Rizal'}</div>
-                <div><strong>Payment:</strong> ${order.paymentMethod}${order.gcashReceiptImage ? ' (GCash Receipt Attached 📄)' : (order.gcashReferenceNumber ? ` (GCash Ref: <strong>${order.gcashReferenceNumber}</strong>)` : '')}</div>
-              </div>
-            </div>
-          ` : ''}
-
-          <!-- Order Summary Table -->
-          <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-            <h3 style="margin: 0 0 12px; font-size: 13px; font-weight: 800; color: #1f2937; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #f3f4f6; padding-bottom: 8px;">
-              🧾 Order Items (${order.items.length})
-            </h3>
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-              <thead>
-                <tr style="color: #6b7280; text-align: left; font-size: 12px; text-transform: uppercase;">
-                  <th style="padding-bottom: 8px;">Item Description</th>
-                  <th style="padding-bottom: 8px; text-align: center;">Qty</th>
-                  <th style="padding-bottom: 8px; text-align: right;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${order.items.map(item => `
-                  <tr style="border-top: 1px solid #f3f4f6;">
-                    <td style="padding: 10px 0;">
-                      <div style="font-weight: 700; color: #1f2937;">${item.productName}</div>
-                      ${item.sugarLevel || item.iceLevel ? `<div style="font-size: 12px; color: #6b7280;">Sugar: ${item.sugarLevel || 'Regular'} | Ice: ${item.iceLevel || 'Regular'}</div>` : ''}
-                      ${item.addons && item.addons.length > 0 ? `<div style="font-size: 12px; color: #059669; font-weight: 600;">+ ${item.addons.join(', ')}</div>` : ''}
-                      ${item.specialInstructions ? `<div style="font-size: 12px; color: #d97706; font-style: italic;">Note: "${item.specialInstructions}"</div>` : ''}
-                    </td>
-                    <td style="padding: 10px 0; text-align: center; color: #374151; font-weight: 700;">
-                      x${item.quantity}
-                    </td>
-                    <td style="padding: 10px 0; text-align: right; font-weight: 700; color: #1f2937;">
-                      ₱${item.subtotal}
-                    </td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-
-            <!-- Price Totals -->
-            <div style="border-top: 2px solid #e5e7eb; margin-top: 12px; padding-top: 12px; font-size: 13px; color: #4b5563;">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span>Subtotal:</span>
-                <span>₱${order.subtotal}</span>
-              </div>
-              ${order.deliveryFee > 0 ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                  <span>Delivery Fee:</span>
-                  <span>₱${order.deliveryFee}</span>
-                </div>
-              ` : ''}
-              ${order.loyaltyDiscount && order.loyaltyDiscount > 0 ? `
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; color: #059669; font-weight: 700;">
-                  <span>Loyalty Member Discount:</span>
-                  <span>-₱${order.loyaltyDiscount}</span>
-                </div>
-              ` : ''}
-              <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #2b1810; margin-top: 8px; border-top: 1px dashed #d1d5db; padding-top: 8px;">
-                <span>Total Amount:</span>
-                <span style="color: #059669;">₱${order.totalAmount}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Store Assistance -->
-          <div style="background: #f9fafb; border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #6b7280; line-height: 1.5; text-align: center; margin-bottom: 20px;">
-            <strong style="color: #374151; display: block; margin-bottom: 4px;">Need help with your order?</strong>
-            <span>Reach out to CommonBrew Taytay directly at </span>
-            <strong style="color: #2563eb;">09474960778</strong>
-            <span> or email </span>
-            <strong style="color: #2563eb;">commonbrewtaytay@gmail.com</strong>
-          </div>
-
-          <!-- Brand & Faith Footer -->
-          <div style="text-align: center; border-top: 1px solid #e7dfd5; padding-top: 18px; font-size: 12px; color: #9ca3af;">
-            <p style="margin: 0 0 6px; font-style: italic; color: #6b7280;">
-              "Every good and perfect gift is from above." — James 1:17
-            </p>
-            <p style="margin: 0; font-weight: 700; color: #4b5563;">
-              CommonBrew Coffee & Tea • Taytay, Rizal
-            </p>
-            <p style="margin: 4px 0 0; color: #9ca3af; font-size: 11px;">
-              Handcrafted with prayer, passion, and premium quality beans.
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
+    
+    // 3. Build the branded order notification.
+    const emailHtml = commonBrewOrderEmail(order);
 
     // 4. Plain text fallback
     const emailPlainText = `
