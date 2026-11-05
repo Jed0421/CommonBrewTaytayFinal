@@ -425,7 +425,7 @@ export const ReportsView: React.FC = () => {
       </div>
 
       {/* Cash vs Online Payment Totals (click a card to filter by it) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {([
           { key: 'CASH' as const, title: 'Cash Payments', sub: 'Cash, Cash on Pickup & Cash on Delivery', icon: 'fa-money-bill-1', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', total: totalCashSales, count: cashTxns.length },
           { key: 'ONLINE' as const, title: 'Online Payments', sub: 'GCash & other e-wallets', icon: 'fa-mobile-screen-button', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', total: totalOnlinePaySales, count: onlinePayTxns.length }

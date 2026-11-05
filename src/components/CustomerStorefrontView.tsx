@@ -989,7 +989,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
   const todayVerse = getVerseOfTheDay();
 
   return (
-    <div style={{ background: '#fdfbf7', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="storefront" style={{ background: '#fdfbf7', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
       {/* Top Announcement Bar */}
       <div style={{ background: '#111827', color: '#f3f4f6', padding: '0.5rem 1rem', fontSize: '0.8rem', textAlign: 'center', fontWeight: 600, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}>
         <MapPin size={14} style={{ color: '#FF5E00' }} />
@@ -997,13 +997,13 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       </div>
 
       {/* Navigation Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      <header className="sf-header" style={{ position: 'sticky', top: 0, zIndex: 100, background: '#ffffff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+        <div className="sf-header-inner" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0.85rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <CommonBrewLogo variant="full" size="md" color="#FF5E00" />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'nowrap' }}>
+          <nav aria-label="Store navigation" className="sf-header-actions">
             <a
               href="#showcase"
               className="storefront-nav-link"
@@ -1143,12 +1143,13 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 )}
               </button>
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
       {/* Hero Showcase Banner */}
       <section
+        className="sf-hero"
         style={{
           backgroundImage: `linear-gradient(180deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.90) 100%), url(${heroBg})`,
           backgroundSize: 'cover',
@@ -1169,7 +1170,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
-            <CommonBrewLogo variant="full" size="xl" color="#FF5E00" />
+            <CommonBrewLogo className="sf-hero-logo" variant="full" size="xl" color="#FF5E00" />
           </div>
 
           {/* Bible Verse */}
@@ -1323,7 +1324,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
           </div>
 
           {/* Search bar */}
-          <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '400px', display: 'flex', alignItems: 'center' }}>
+          <div className="sf-search" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', color: '#9ca3af' }} />
             <input
               type="text"
@@ -1336,7 +1337,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
         </div>
 
         {/* Category Pills */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '2rem', paddingBottom: '0.5rem' }}>
+        <div className="sf-categories" aria-label="Menu categories">
           <button
             onClick={() => setActiveCategory('all')}
             style={{ padding: '0.5rem 1.25rem', borderRadius: '20px', border: 'none', background: activeCategory === 'all' ? '#3d2314' : '#f3ece3', color: activeCategory === 'all' ? '#fff' : '#3d2314', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -1355,7 +1356,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
         </div>
 
         {/* Product Cards Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
+        <div className="sf-product-grid">
           {filteredProducts.map(prod => (
             <div
               key={prod.id}
@@ -1384,7 +1385,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                   </p>
                 </div>
 
-                <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="sf-product-actions" style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#2c1810' }}>₱{prod.price}</span>
                     {prod.upsizePrice && <span style={{ fontSize: '0.75rem', color: '#9ca3af', display: 'block' }}>Upsize: ₱{prod.upsizePrice}</span>}
@@ -1414,7 +1415,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
       {/* About CommonBrew Section */}
       <section id="about" style={{ background: '#f5eee6', padding: '4rem 1.5rem', marginTop: '4rem', borderTop: '1px solid #e8dfd5' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '2.5rem', alignItems: 'center' }}>
           <div>
             <span style={{ color: '#d97706', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>About Our Brews</span>
             <h2 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#2c1810', marginTop: '0.5rem', marginBottom: '1rem', lineHeight: 1.2 }}>
@@ -1424,7 +1425,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               {storeInfo?.aboutText}
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
+            <div className="sf-two-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1.5rem' }}>
               <div style={{ background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
                 <Clock size={22} style={{ color: '#FF5E00' }} />
                 <h4 style={{ margin: '0.5rem 0 0.25rem', fontSize: '0.9rem', fontWeight: 800 }}>Operating Hours</h4>
@@ -1548,8 +1549,8 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
       {/* Product Customization Modal */}
       {selectedProduct && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: '480px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+        <div className="responsive-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="sf-dialog" role="dialog" aria-modal="true" aria-label="Customize your order" style={{ background: '#fff', width: '100%', maxWidth: '480px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ height: '160px', position: 'relative', background: '#3d2314' }}>
               <img
                 src={getProductImage(selectedProduct.imageUrl, selectedProduct.categoryId, selectedProduct.name)}
@@ -1560,14 +1561,14 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 }}
               />
               <button
-                onClick={() => setSelectedProduct(null)}
+                aria-label="Close customization" onClick={() => setSelectedProduct(null)}
                 style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
+            <div className="sf-dialog-body" style={{ padding: '1.5rem', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#1f2937' }}>{selectedProduct.name}</h3>
@@ -1640,7 +1641,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                     <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>
                       Select Add-ons {availableAddons.length === 1 ? '(Optional)' : ''}
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: availableAddons.length === 1 ? '1fr' : '1fr 1fr', gap: '0.5rem' }}>
+                    <div className="sf-two-columns" style={{ display: 'grid', gridTemplateColumns: availableAddons.length === 1 ? '1fr' : '1fr 1fr', gap: '0.5rem' }}>
                       {availableAddons.map(addon => (
                         <button
                           key={addon.name}
@@ -1673,7 +1674,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               </div>
 
               {/* Qty & Add to cart */}
-              <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+              <div className="sf-customize-actions" style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '8px', overflow: 'hidden' }}>
                   <button onClick={() => setModalQty(Math.max(1, modalQty - 1))} style={{ padding: '0.5rem 0.8rem', background: '#f3f4f6', border: 'none', cursor: 'pointer', fontWeight: 800 }}><Minus size={14} /></button>
                   <span style={{ padding: '0 1rem', fontWeight: 800 }}>{modalQty}</span>
@@ -1694,13 +1695,13 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
       {/* Cart Drawer */}
       {isCartOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: '420px', height: '100%', display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)' }}>
+        <div className="responsive-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+          <div className="sf-cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart" style={{ background: '#fff', width: '100%', maxWidth: '420px', height: '100%', display: 'flex', flexDirection: 'column', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)' }}>
             <div style={{ padding: '1.25rem', background: '#3d2314', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShoppingCart size={20} /> Your Online Cart ({cartItemCount})
               </h3>
-              <button onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+              <button aria-label="Close cart" onClick={() => setIsCartOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -1764,22 +1765,22 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
       {/* Checkout Modal */}
       {isCheckoutOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: '#fff', width: '100%', maxWidth: '520px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+        <div className="responsive-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="sf-dialog" role="dialog" aria-modal="true" aria-label="Online order checkout" style={{ background: '#fff', width: '100%', maxWidth: '520px', borderRadius: '20px', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
             <div style={{ padding: '1.25rem 1.5rem', background: '#3d2314', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontWeight: 800, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShoppingCart size={20} /> Online Order Checkout
               </h3>
-              <button onClick={() => setIsCheckoutOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
+              <button aria-label="Close checkout" onClick={() => setIsCheckoutOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handlePlaceOrder} style={{ padding: '1.5rem', maxHeight: '80vh', overflowY: 'auto' }}>
+            <form className="sf-dialog-body" onSubmit={handlePlaceOrder} style={{ padding: '1.5rem', overflowY: 'auto' }}>
               {/* Order Type Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Select Order Type</label>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div className="sf-order-types">
                   {[
                     { type: 'Delivery', label: 'Delivery (+₱45)', icon: <Bike size={16} /> },
                     { type: 'Pickup', label: 'Store Pickup', icon: <Store size={16} /> },
@@ -1799,7 +1800,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               </div>
 
               {/* Customer Info */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="sf-two-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontWeight: 700, fontSize: '0.8rem', color: '#374151', marginBottom: '0.25rem' }}>Your Name *</label>
                   <input
@@ -1869,7 +1870,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               {/* Payment Method */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Payment Method</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div className="sf-two-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   {[
                     { pm: 'GCash', icon: <Smartphone size={14} /> },
                     { pm: 'Cash on Pickup', icon: <Banknote size={14} /> },
@@ -2566,6 +2567,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       {/* Full-Screen QR View Modal */}
       {isQrModalOpen && (
         <div
+          className="responsive-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2671,6 +2673,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       {/* Full-Screen Receipt Preview Lightbox Modal */}
       {previewModalImage && (
         <div
+          className="responsive-overlay"
           style={{
             position: 'fixed',
             inset: 0,
@@ -2811,7 +2814,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       )}
 
       {isAccountModalOpen && customer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(5px)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+        <div className="responsive-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(5px)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: '#fff', width: '100%', maxWidth: '540px', borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             
             {/* Account Header */}
@@ -2906,7 +2909,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   
                   {/* Customer Identity Card */}
-                  <div style={{ background: '#fffcf9', borderRadius: '16px', padding: '1.25rem', border: '1px solid #ebd3bb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                  <div className="sf-profile-summary" style={{ background: '#fffcf9', borderRadius: '16px', padding: '1.25rem', border: '1px solid #ebd3bb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#3d2314', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 900 }}>
                         {customer.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CB'}
@@ -3476,7 +3479,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
       {/* Digital Receipt Modal */}
       {selectedReceiptOrder && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }}>
+        <div className="responsive-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }}>
           <div style={{ background: '#fff', width: '100%', maxWidth: '380px', borderRadius: '16px', padding: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', fontFamily: 'monospace' }}>
             <div style={{ textAlign: 'center', borderBottom: '1px dashed #d1d5db', paddingBottom: '0.75rem', marginBottom: '0.75rem' }}>
               <h3 style={{ margin: '0 0 2px', fontWeight: 900, fontSize: '1.1rem', color: '#111' }}>COMMONBREW TAYTAY</h3>
@@ -3570,6 +3573,8 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       {/* Floating Customer AI Chatbot Button (Only visible when logged in) */}
       {customer && (
         <button
+          className="sf-chat-launcher"
+          aria-label="Open CommonBot AI Assistant"
           onClick={() => setIsChatbotOpen(true)}
           style={{
             position: 'fixed',

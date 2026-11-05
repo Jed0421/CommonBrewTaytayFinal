@@ -278,12 +278,13 @@ export const App: React.FC = () => {
       )}
 
       {/* Sidebar Navigation */}
-      <aside className={`sidebar ${isMobileNavOpen ? 'mobile-open' : ''}`}>
+      <aside id="staff-navigation" className={`sidebar ${isMobileNavOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-logo" style={{ padding: '1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
             <CommonBrewLogo variant="full" size="md" color="#FF5E00" />
             <button
               className="mobile-nav-close"
+              aria-label="Close navigation"
               onClick={() => setIsMobileNavOpen(false)}
               style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '0.25rem' }}
             >
@@ -408,6 +409,8 @@ export const App: React.FC = () => {
           <div style={{ fontWeight: 700, color: '#6b7280', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               className="mobile-hamburger-btn"
+              aria-controls="staff-navigation"
+              aria-expanded={isMobileNavOpen}
               onClick={() => setIsMobileNavOpen(true)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.35rem', color: '#111827', display: 'none', borderRadius: '8px' }}
               title="Toggle Navigation Menu"

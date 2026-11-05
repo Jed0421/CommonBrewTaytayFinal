@@ -223,7 +223,7 @@ export const InventoryView: React.FC = () => {
       </div>
 
       {/* Inventory KPI Summary Cards */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))' }}>
         <div className="kpi-card">
           <div className="kpi-icon-wrap blue" style={{ color: 'var(--brand)' }}>
             <i className="fa-solid fa-boxes-stacked" style={{ fontSize: '1.25rem' }}></i>
@@ -264,8 +264,8 @@ export const InventoryView: React.FC = () => {
       {/* Filters and Table */}
       <div className="table-card" style={{ padding: '1.25rem' }}>
         <div className="table-header-row" style={{ borderBottom: 'none', padding: 0, marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '300px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: 'min(100%, 300px)', flexWrap: 'wrap' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 'min(100%, 220px)' }}>
               <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', fontSize: '0.85rem', pointerEvents: 'none' }}></i>
               <input
                 type="text"
@@ -485,7 +485,7 @@ export const InventoryView: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
                 <div>
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.2rem' }}>Category</label>
                   <select
@@ -514,7 +514,7 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
                 <div>
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.2rem' }}>Unit Cost (₱)</label>
                   <input
@@ -541,7 +541,7 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <div>
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.2rem' }}>Initial Stock</label>
                   <input
@@ -600,7 +600,7 @@ export const InventoryView: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
                 <div>
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.2rem' }}>Category</label>
                   <select
@@ -630,7 +630,7 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.85rem' }}>
                 <div>
                   <label className="form-label" style={{ display: 'block', marginBottom: '0.2rem' }}>Unit Cost (₱)</label>
                   <input

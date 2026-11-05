@@ -297,7 +297,7 @@ export const LegalDocumentsModal: React.FC<LegalDocumentsModalProps> = ({
                 <p style={{ margin: '0 0 0.5rem' }}>
                   CommonBrew Coffee Taytay currently accepts the following payment methods:
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', margin: '0.75rem 0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '0.75rem', margin: '0.75rem 0' }}>
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '0.75rem', background: '#f8fafc' }}>
                     <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem', marginBottom: '2px' }}>📱 GCash QR & Express</div>
                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Scan official merchant QR code and upload your downloaded GCash payment receipt.</div>

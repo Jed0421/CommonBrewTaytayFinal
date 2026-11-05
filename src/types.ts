@@ -196,9 +196,17 @@ export interface ProductSalesSummary {
 
 export interface DailyAnalytics {
   todayRevenue: number;
-  revenueGrowth: number;
+  revenueGrowth: number | null;
   todayTransactions: number;
-  transactionGrowth: number;
+  transactionGrowth: number | null;
+  previousRevenue: number;
+  previousTransactions: number;
+
+  fromDate: string;
+  toDate: string;
+  previousFromDate: string;
+  previousToDate: string;
+
   topSellingProduct: string;
   lowStockCount: number;
   weeklySales: WeeklySalesPoint[];

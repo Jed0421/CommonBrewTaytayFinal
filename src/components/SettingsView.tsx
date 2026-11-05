@@ -572,7 +572,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem' }}>
+      <div className="settings-layout">
         <div className="table-card">
           <div className="table-header-row">
             <h2 className="card-title" style={{ margin: 0 }}>Active Cashier & Admin Users</h2>
@@ -724,7 +724,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
             <p style={{ fontSize: '0.8rem', color: 'var(--text-2)', marginBottom: '1rem' }}>
               Switch the entire POS interface between light and dark mode.
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <button
                 type="button"
                 onClick={() => setTheme('light')}
@@ -1036,7 +1036,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '0.75rem', marginTop: '1.5rem' }}>
                 <button
                   type="button"
                   className="btn-outline"
@@ -1419,7 +1419,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '0.75rem', marginTop: '1.5rem' }}>
                 <button
                   type="button"
                   className="btn-outline"
@@ -1490,7 +1490,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
               This cashier will immediately be prevented from logging in to the POS terminal. This account will be moved to the <strong>Archive Module</strong>, where you can view or restore it anytime.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <button
                 type="button"
                 className="btn-outline"

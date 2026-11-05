@@ -291,7 +291,7 @@ export const ProductsView: React.FC = () => {
       }}>
         {/* Search Bar & Result Counter */}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-          <div style={{ position: 'relative', flex: '1', minWidth: '280px', maxWidth: '480px' }}>
+          <div style={{ position: 'relative', flex: '1', minWidth: 'min(100%, 280px)', maxWidth: '480px' }}>
             <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
             <input
               type="text"
@@ -502,7 +502,7 @@ export const ProductsView: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label className="form-label">Category</label>
                   <select
@@ -529,7 +529,7 @@ export const ProductsView: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="responsive-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div className="form-group">
                   <label className="form-label">Standard Price (₱)</label>
                   <input

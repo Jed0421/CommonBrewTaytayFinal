@@ -1178,3 +1178,29 @@ button:active:not(:disabled) {
     color: #000 !important;
   }
 }
+
+.dashboard-date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.dashboard-date-field input {
+  min-width: 145px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+  cursor: pointer;
+  color-scheme: light;
+}
+
+.dashboard-date-field input:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
+}

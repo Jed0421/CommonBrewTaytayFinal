@@ -2966,33 +2966,41 @@ app.post('/api/pos/transaction', requireStaff, (req, res) => {
 
 // Dashboard Analytics
 app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
-  const period = (req.query.period as string) || 'Today';
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
-
-  // Exclude voided transactions
-  const validTransactions = transactions.filter(t => t.status !== 'Voided' && t.status !== 'void');
-
-  // Filter based on requested period
-  let periodTxns = validTransactions;
-  if (period === 'Today') {
-    periodTxns = validTransactions.filter(t => t.createdAt.startsWith(todayStr));
-  } else if (period === 'Weekly') {
-    const weekAgo = new Date();
-    weekAgo.setDate(now.getDate() - 7);
-    periodTxns = validTransactions.filter(t => new Date(t.createdAt) >= weekAgo);
-  } else if (period === 'Monthly') {
-    const monthAgo = new Date();
-    monthAgo.setDate(now.getDate() - 30);
-    periodTxns = validTransactions.filter(t => new Date(t.createdAt) >= monthAgo);
-  } else if (period === 'Yearly') {
-    const yearAgo = new Date();
-    yearAgo.setDate(now.getDate() - 365);
-    periodTxns = validTransactions.filter(t => new Date(t.createdAt) >= yearAgo);
+  const oneDay = 86400000;
+  const dateKey = (timestamp: number): string => {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date(timestamp));
+    const get = (type: string) => parts.find(p => p.type === type)?.value ?? '';
+    return get('year') + '-' + get('month') + '-' + get('day');
+  };
+  const validDate = (value: string) => {
+    const date = new Date(value + 'T00:00:00.000Z');
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+      Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  };
+  const today = dateKey(Date.now());
+  const fromDate = req.query.from === undefined ? today : typeof req.query.from === 'string' ? req.query.from : '';
+  const toDate = req.query.to === undefined ? today : typeof req.query.to === 'string' ? req.query.to : '';
+  if (!validDate(fromDate) || !validDate(toDate) || fromDate > toDate || toDate > today) {
+    return res.status(400).json({ message: 'Select valid dates, From before To, no later than today.' });
   }
-
+  const dayStart = new Date(fromDate + 'T00:00:00+08:00').getTime();
+  const dayEnd = new Date(toDate + 'T00:00:00+08:00').getTime() + oneDay;
+  const previousStart = dayStart - (dayEnd - dayStart);
+  const validTransactions = transactions.filter(t => t.status !== 'Voided' && t.status !== 'void');
+  const inRange = (createdAt: string, start: number, end: number) => {
+    const timestamp = new Date(createdAt).getTime();
+    return timestamp >= start && timestamp < end;
+  };
+  const periodTxns = validTransactions.filter(t => inRange(t.createdAt, dayStart, dayEnd));
+  const previousTxns = validTransactions.filter(t => inRange(t.createdAt, previousStart, dayStart));
   const todayRevenue = periodTxns.reduce((sum, t) => sum + t.totalAmount, 0);
   const todayTransactions = periodTxns.length;
+  const previousRevenue = previousTxns.reduce((sum, t) => sum + t.totalAmount, 0);
+  const previousTransactions = previousTxns.length;
+  const growth = (current: number, previous: number): number | null =>
+    previous === 0 ? (current === 0 ? 0 : null) : Number(((current - previous) / previous * 100).toFixed(1));
 
   // Low stock inventory items
   const lowStockItems = inventory.map(i => {
@@ -3024,33 +3032,25 @@ app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
 
   const topSellingProduct = sortedTopProducts[0]?.productName || 'None';
 
-  // Weekly sales trend (past 7 days) excluding voided orders
-  const weeklySales = [];
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(now.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    const dayLabel = days[d.getDay()];
-
-    const rev = validTransactions
-      .filter(t => t.createdAt.startsWith(dateStr))
-      .reduce((sum, t) => sum + t.totalAmount, 0);
-
-    weeklySales.push({ dayLabel, revenue: rev });
+  
+  // Daily sales for every selected date, including zero-sales days.
+  const dailyRevenue = new Map<string, number>();
+  for (let timestamp = dayStart; timestamp < dayEnd; timestamp += oneDay) {
+    dailyRevenue.set(dateKey(timestamp), 0);
   }
-
+  periodTxns.forEach(t => {
+    const key = dateKey(new Date(t.createdAt).getTime());
+    dailyRevenue.set(key, (dailyRevenue.get(key) ?? 0) + t.totalAmount);
+  });
+  const weeklySales = [...dailyRevenue].map(([dayLabel, revenue]) => ({ dayLabel, revenue }));
   res.json({
-    todayRevenue,
-    revenueGrowth: 12.5,
-    todayTransactions,
-    transactionGrowth: 8.3,
-    topSellingProduct,
-    lowStockCount: lowStockItems.length,
-    weeklySales,
-    lowStockItems,
-    topProducts: sortedTopProducts.slice(0, 5)
+    todayRevenue, todayTransactions, previousRevenue, previousTransactions,
+    revenueGrowth: growth(todayRevenue, previousRevenue),
+    transactionGrowth: growth(todayTransactions, previousTransactions),
+    fromDate, toDate,
+    previousFromDate: dateKey(previousStart), previousToDate: dateKey(dayStart - oneDay),
+    topSellingProduct, lowStockCount: lowStockItems.length, weeklySales, lowStockItems,
+    topProducts: [...sortedTopProducts].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5)
   });
 });
 

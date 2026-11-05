@@ -36,6 +36,7 @@ export const CookieConsentBanner: React.FC<CookieConsentBannerProps> = ({ onLear
 
   return (
     <div
+      className="cookie-notice"
       role="dialog"
       aria-live="polite"
       aria-label="Cookie notice"

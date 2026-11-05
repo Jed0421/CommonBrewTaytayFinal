@@ -446,6 +446,7 @@ export const AccessPortalModal: React.FC<Props> = ({
 
   return (
     <div
+      className="responsive-overlay access-overlay"
       style={{
         position: 'fixed',
         inset: 0,
@@ -460,6 +461,10 @@ export const AccessPortalModal: React.FC<Props> = ({
       }}
     >
       <div
+        className="access-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="CommonBrew sign in and registration"
         style={{
           width: '100%',
           maxWidth: '440px',
