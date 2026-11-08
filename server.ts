@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { PersistentStore } from './src/lib/serverStore.ts';
+import { drainDatabaseTasks } from './src/lib/databaseTasks.ts';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -16,7 +18,6 @@ import {
 import { syncCloudSqlDatabase, syncTransactionToCloudSql, syncOnlineOrderToCloudSql, syncInventoryUpdateToCloudSql } from './src/db/sync.ts';
 import {
   hydrateFromSupabase,
-  migrateDataToSupabase,
   setupSupabaseRealtime,
   startContinuousSupabaseSync,
   syncUserToSupabase,
@@ -32,9 +33,39 @@ import {
   syncStoreSettingsToSupabase
 } from './src/db/supabaseSync.ts';
 
+// Each Vercel invocation gets an isolated, fresh database snapshot.
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+export async function createApplication(serverless = false) {
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : (typeof import.meta !== 'undefined' && import.meta.url ? path.dirname(fileURLToPath(import.meta.url)) : process.cwd());
 
 const app = express();
+// Preserve Express 4 behavior while forwarding rejected async route handlers.
+for (const method of ['get', 'post', 'put', 'delete', 'all'] as const) {
+  const register = (app[method] as any).bind(app);
+  (app as any)[method] = (route: any, ...handlers: any[]) => {
+    if (handlers.length === 0) return register(route);
+    return register(route, ...handlers.map(handler => (...args: any[]) => {
+      Promise.resolve().then(() => handler(...args)).catch(args[2]);
+    }));
+  };
+}
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (serverless) {
+    // Finish existing asynchronous persistence before ending the function response.
+    const json = res.json.bind(res);
+    res.json = ((body: any) => {
+      drainDatabaseTasks().then(() => json(body)).catch(error => {
+        console.error('[Database write failed]', error);
+        res.status(503);
+        json({ success: false, message: 'Could not save changes. Please try again.' });
+      });
+      return res;
+    }) as typeof res.json;
+  }
+  next();
+});
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.disable('x-powered-by');
@@ -55,7 +86,7 @@ app.use((req, res, next) => {
 
 // Simple in-memory rate limiter (per client IP + optional target such as the email/username,
 // so customers sharing the store Wi-Fi don't block each other)
-const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
 function rateLimit(name: string, max: number, windowMs: number, targetOf?: (req: express.Request) => string): express.RequestHandler {
   return (req, res, next) => {
     const target = targetOf ? String(targetOf(req) || '').trim().toLowerCase() : '';
@@ -78,7 +109,7 @@ function rateLimit(name: string, max: number, windowMs: number, targetOf?: (req:
     next();
   };
 }
-setInterval(() => {
+if (!serverless) setInterval(() => {
   const now = Date.now();
   for (const [key, bucket] of rateLimitBuckets) {
     if (now > bucket.resetAt) rateLimitBuckets.delete(key);
@@ -247,7 +278,7 @@ interface InventoryLogRecord {
 }
 
 // Initial Users
-const users: UserRecord[] = [
+const users: UserRecord[] = serverless ? [] : [
   {
     id: 'u-1',
     fullName: 'Manager Admin',
@@ -273,13 +304,13 @@ const users: UserRecord[] = [
 ];
 
 // Initial Categories
-const categories: CategoryRecord[] = commonbrewCategories;
+const categories: CategoryRecord[] = structuredClone(commonbrewCategories);
 
 // Initial Inventory Items (Raw Materials & Packaging)
-const inventory: InventoryRecord[] = commonbrewInventory;
+const inventory: InventoryRecord[] = structuredClone(commonbrewInventory);
 
 // Initial Customers
-const customers: CustomerRecord[] = [
+const customers: CustomerRecord[] = serverless ? [] : [
   {
     id: 'cust-jedi-01',
     fullName: 'Jedidiah Galicia',
@@ -326,7 +357,7 @@ const storeInfo = {
 const onlineOrders: OnlineOrderRecord[] = [];
 
 // Initial Products
-const products: ProductRecord[] = commonbrewProducts;
+const products: ProductRecord[] = structuredClone(commonbrewProducts);
 
 // Recipes mapping (product -> inventory item -> qty)
 const productRecipes: ProductRecipeRecord[] = [...commonbrewProductRecipes];
@@ -659,42 +690,25 @@ interface CustomerSession {
   lastActive: number;
 }
 
-const staffSessions = new Map<string, StaffSession>();
-const customerSessions = new Map<string, CustomerSession>();
+const staffSessions = new PersistentStore<StaffSession>('staff-session', serverless);
+const customerSessions = new PersistentStore<CustomerSession>('customer-session', serverless);
 
 // Logins expire: staff after one long shift, customers after 30 days
 const STAFF_SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 const CUSTOMER_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [token, session] of staffSessions) {
-    if (now - session.createdAt > STAFF_SESSION_MAX_AGE_MS) staffSessions.delete(token);
-  }
-  for (const [token, session] of customerSessions) {
-    if (now - session.createdAt > CUSTOMER_SESSION_MAX_AGE_MS) customerSessions.delete(token);
-  }
-}, 15 * 60 * 1000).unref();
-
 const ACCOUNT_DEACTIVATED_MESSAGE = 'This account has been deactivated by the Administrator. Please contact your manager.';
 
 // Kill every open session of a staff account (e.g. after the Admin deactivates it)
-function revokeStaffSessionsForUser(userId: string): number {
-  let revoked = 0;
-  for (const [token, session] of staffSessions) {
-    if (session.userId === userId) {
-      staffSessions.delete(token);
-      revoked++;
-    }
-  }
-  return revoked;
+async function revokeStaffSessionsForUser(userId: string): Promise<number> {
+  return staffSessions.deleteForUser(userId);
 }
 
 function generateSessionToken(prefix: 'staff' | 'cust'): string {
   return `${prefix}_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
 }
 
-function getStaffUserFromRequest(req: express.Request): UserRecord | null {
+async function getStaffUserFromRequest(req: express.Request): Promise<UserRecord | null> {
   const authHeader = req.headers.authorization || (req.headers['x-staff-token'] as string);
   let token = '';
   if (typeof authHeader === 'string') {
@@ -705,25 +719,25 @@ function getStaffUserFromRequest(req: express.Request): UserRecord | null {
     }
   }
   if (!token) return null;
-  const session = staffSessions.get(token);
+  const session = await staffSessions.get(token);
   if (!session) return null;
   if (Date.now() - session.createdAt > STAFF_SESSION_MAX_AGE_MS) {
-    staffSessions.delete(token);
+    await staffSessions.delete(token);
     return null;
   }
   session.lastActive = Date.now();
   const user = users.find(u => u.id === session.userId && u.isActive);
   if (!user) {
     // Account was deactivated (or removed) while signed in - drop the session
-    staffSessions.delete(token);
+    await staffSessions.delete(token);
     return null;
   }
   return user;
 }
 
 // Route guards: any signed-in, active staff member / Administrator only
-const requireStaff: express.RequestHandler = (req, res, next) => {
-  const user = getStaffUserFromRequest(req);
+const requireStaff: express.RequestHandler = async (req, res, next) => {
+  const user = await getStaffUserFromRequest(req);
   if (!user) {
     return res.status(401).json({ success: false, message: 'Please sign in as staff to continue.' });
   }
@@ -731,8 +745,8 @@ const requireStaff: express.RequestHandler = (req, res, next) => {
   next();
 };
 
-const requireAdmin: express.RequestHandler = (req, res, next) => {
-  const user = getStaffUserFromRequest(req);
+const requireAdmin: express.RequestHandler = async (req, res, next) => {
+  const user = await getStaffUserFromRequest(req);
   if (!user) {
     return res.status(401).json({ success: false, message: 'Please sign in as Administrator to continue.' });
   }
@@ -743,7 +757,7 @@ const requireAdmin: express.RequestHandler = (req, res, next) => {
   next();
 };
 
-function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
+async function getCustomerFromRequest(req: express.Request): Promise<CustomerRecord | null> {
   const authHeader = (req.headers['x-customer-token'] as string) || req.headers.authorization;
   let token = '';
   if (typeof authHeader === 'string') {
@@ -754,10 +768,10 @@ function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
     }
   }
   if (!token) return null;
-  const session = customerSessions.get(token);
+  const session = await customerSessions.get(token);
   if (!session) return null;
   if (Date.now() - session.createdAt > CUSTOMER_SESSION_MAX_AGE_MS) {
-    customerSessions.delete(token);
+    await customerSessions.delete(token);
     return null;
   }
   session.lastActive = Date.now();
@@ -768,7 +782,7 @@ function getCustomerFromRequest(req: express.Request): CustomerRecord | null {
 // ── API ROUTES ──────────────────────────────────────────────
 
 // Unified Login Route (Single login page: automatically detects Admin, Staff, or Customer)
-app.post('/api/auth/unified-login', loginLimiter, (req, res) => {
+app.post('/api/auth/unified-login', loginLimiter, async (req, res) => {
   try {
     const { identifier, username, email, password } = req.body;
     const loginId = (identifier || username || email || '').trim();
@@ -801,7 +815,7 @@ app.post('/api/auth/unified-login', loginLimiter, (req, res) => {
 
       if (isStaffPassValid) {
         const token = generateSessionToken('staff');
-        staffSessions.set(token, {
+        await staffSessions.set(token, {
           token,
           userId: staffUser.id,
           createdAt: Date.now(),
@@ -840,7 +854,7 @@ app.post('/api/auth/unified-login', loginLimiter, (req, res) => {
 
       if (isCustPassValid) {
         const token = generateSessionToken('cust');
-        customerSessions.set(token, {
+        await customerSessions.set(token, {
           token,
           customerId: cust.id,
           createdAt: Date.now(),
@@ -877,7 +891,7 @@ app.post('/api/auth/unified-login', loginLimiter, (req, res) => {
 });
 
 // Auth Routes (Staff)
-app.post('/api/auth/login', loginLimiter, (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   try {
     const { username, password, role } = req.body;
     if (!username || !password) {
@@ -914,7 +928,7 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
     }
 
     const token = generateSessionToken('staff');
-    staffSessions.set(token, {
+    await staffSessions.set(token, {
       token,
       userId: user.id,
       createdAt: Date.now(),
@@ -939,14 +953,14 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
   }
 });
 
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
   const authHeader = req.headers.authorization || (req.headers['x-staff-token'] as string);
   let token = '';
   if (typeof authHeader === 'string') {
     token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader.trim();
   }
   if (token) {
-    staffSessions.delete(token);
+    await staffSessions.delete(token);
   }
   res.json({ success: true });
 });
@@ -962,7 +976,7 @@ function stripSensitive(row: any) {
   return copy;
 }
 
-export function broadcastRealtimeEvent(data: { table: string; eventType: string; new?: any; old?: any }) {
+function broadcastRealtimeEvent(data: { table: string; eventType: string; new?: any; old?: any }) {
   // The stream is public, so never forward password hashes or codes
   const safe = { ...data, new: stripSensitive(data.new), old: stripSensitive(data.old) };
   const payload = `data: ${JSON.stringify(safe)}\n\n`;
@@ -975,11 +989,12 @@ export function broadcastRealtimeEvent(data: { table: string; eventType: string;
   }
 }
 
-app.get(['/api/health', '/health'], (req, res) => {
+app.get(['/api/health', '/health'], async (req, res) => {
   res.json({ status: 'ok', success: true, timestamp: new Date().toISOString() });
 });
 
-app.get('/api/realtime/stream', (req, res) => {
+app.get('/api/realtime/stream', async (req, res) => {
+  if (serverless) return res.status(204).end();
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
@@ -1008,8 +1023,8 @@ app.get('/api/realtime/stream', (req, res) => {
   });
 });
 
-app.get('/api/auth/me', (req, res) => {
-  const user = getStaffUserFromRequest(req);
+app.get('/api/auth/me', async (req, res) => {
+  const user = await getStaffUserFromRequest(req);
   if (!user) {
     // Tell the device explicitly when its account was deactivated so it can sign out with a notice.
     // The client also sends its user id, which covers sessions lost to a revoke or server restart.
@@ -1030,8 +1045,8 @@ app.get('/api/auth/me', (req, res) => {
 
 // ── CUSTOMER AUTH & PROFILE ROUTES ───────────────────────────
 // Store temporary OTP codes for mobile and email verification
-const phoneOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: boolean }> = new Map();
-const emailOtpStore: Map<string, { otp: string; expiresAt: number; isVerified: boolean }> = new Map();
+const phoneOtpStore = new PersistentStore<{ otp: string; expiresAt: number; isVerified: boolean }>('phone-otp', serverless);
+const emailOtpStore = new PersistentStore<{ otp: string; expiresAt: number; isVerified: boolean }>('email-otp', serverless);
 
 
 // Shared CommonBrew email presentation.
@@ -1655,7 +1670,7 @@ app.post('/api/auth/send-email-otp', otpSendLimiter, async (req, res) => {
   // Generate a random 6-digit OTP code
   const generatedOtp = crypto.randomInt(100000, 1000000).toString();
 
-  emailOtpStore.set(cleanEmail, {
+  await emailOtpStore.set(cleanEmail, {
     otp: generatedOtp,
     expiresAt: Date.now() + 10 * 60 * 1000,
     isVerified: false
@@ -1705,7 +1720,7 @@ app.post('/api/auth/send-email-otp', otpSendLimiter, async (req, res) => {
 });
 
 // Endpoint to verify Email OTP code
-app.post('/api/auth/verify-email-otp', otpVerifyLimiter, (req, res) => {
+app.post('/api/auth/verify-email-otp', otpVerifyLimiter, async (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
@@ -1716,7 +1731,7 @@ app.post('/api/auth/verify-email-otp', otpVerifyLimiter, (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const entry = emailOtpStore.get(cleanEmail);
+  const entry = await emailOtpStore.get(cleanEmail);
 
   if (!entry) {
     return res.status(400).json({
@@ -1726,7 +1741,7 @@ app.post('/api/auth/verify-email-otp', otpVerifyLimiter, (req, res) => {
   }
 
   if (Date.now() > entry.expiresAt) {
-    emailOtpStore.delete(cleanEmail);
+    await emailOtpStore.delete(cleanEmail);
     return res.status(400).json({
       success: false,
       message: 'Email verification code has expired. Please click "Send Code" to request a new code.'
@@ -1742,7 +1757,7 @@ app.post('/api/auth/verify-email-otp', otpVerifyLimiter, (req, res) => {
 
   // Mark as verified
   entry.isVerified = true;
-  emailOtpStore.set(cleanEmail, entry);
+  await emailOtpStore.set(cleanEmail, entry);
 
   res.json({
     success: true,
@@ -1775,7 +1790,7 @@ app.post('/api/auth/forgot-password-send-otp', otpSendLimiter, async (req, res) 
   // Generate 6-digit OTP code
   const generatedOtp = crypto.randomInt(100000, 1000000).toString();
 
-  emailOtpStore.set(cleanEmail, {
+  await emailOtpStore.set(cleanEmail, {
     otp: generatedOtp,
     expiresAt: Date.now() + 10 * 60 * 1000,
     isVerified: false
@@ -1812,7 +1827,7 @@ app.post('/api/auth/forgot-password-send-otp', otpSendLimiter, async (req, res) 
 });
 
 // Endpoint to reset customer password after OTP verification
-app.post('/api/auth/reset-password', otpVerifyLimiter, (req, res) => {
+app.post('/api/auth/reset-password', otpVerifyLimiter, async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
   if (!email || !newPassword) {
@@ -1830,7 +1845,7 @@ app.post('/api/auth/reset-password', otpVerifyLimiter, (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const entry = emailOtpStore.get(cleanEmail);
+  const entry = await emailOtpStore.get(cleanEmail);
 
   // Check OTP verification status
   const isOtpVerified = entry && (entry.isVerified || (otp && entry.otp === otp.trim() && Date.now() <= entry.expiresAt));
@@ -1855,7 +1870,7 @@ app.post('/api/auth/reset-password', otpVerifyLimiter, (req, res) => {
   syncPasswordToSupabase(cust.id, cust.passwordHash).catch(err => console.error('Supabase customer password sync error:', err));
 
   // Clean up OTP session
-  emailOtpStore.delete(cleanEmail);
+  await emailOtpStore.delete(cleanEmail);
 
   res.json({
     success: true,
@@ -1974,7 +1989,7 @@ app.post('/api/auth/send-otp', otpSendLimiter, async (req, res) => {
   const generatedOtp = crypto.randomInt(100000, 1000000).toString();
   
   // Store OTP with 10-minute expiry
-  phoneOtpStore.set(cleanPhone, {
+  await phoneOtpStore.set(cleanPhone, {
     otp: generatedOtp,
     expiresAt: Date.now() + 10 * 60 * 1000,
     isVerified: false
@@ -2007,7 +2022,7 @@ app.post('/api/auth/send-otp', otpSendLimiter, async (req, res) => {
 });
 
 // Endpoint to verify OTP code
-app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
+app.post('/api/auth/verify-otp', otpVerifyLimiter, async (req, res) => {
   const { phone, otp } = req.body;
 
   if (!phone || !otp) {
@@ -2018,7 +2033,7 @@ app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
   }
 
   const cleanPhone = phone.trim().replace(/\s+/g, '');
-  const entry = phoneOtpStore.get(cleanPhone);
+  const entry = await phoneOtpStore.get(cleanPhone);
 
   if (!entry) {
     return res.status(400).json({
@@ -2028,7 +2043,7 @@ app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
   }
 
   if (Date.now() > entry.expiresAt) {
-    phoneOtpStore.delete(cleanPhone);
+    await phoneOtpStore.delete(cleanPhone);
     return res.status(400).json({
       success: false,
       message: 'OTP verification code has expired. Please click "Send Code" to request a new code.'
@@ -2044,7 +2059,7 @@ app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
 
   // Mark as verified
   entry.isVerified = true;
-  phoneOtpStore.set(cleanPhone, entry);
+  await phoneOtpStore.set(cleanPhone, entry);
 
   res.json({
     success: true,
@@ -2052,7 +2067,7 @@ app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
   });
 });
 
-app.post('/api/auth/register-customer', (req, res) => {
+app.post('/api/auth/register-customer', async (req, res) => {
   const { fullName, username, email, phone, otp, password, address, defaultAddress } = req.body;
   const userAddress = (address || defaultAddress || '').trim();
 
@@ -2064,11 +2079,11 @@ app.post('/api/auth/register-customer', (req, res) => {
   const cleanPhone = phone ? phone.trim().replace(/\s+/g, '') : '';
 
   // 1. Check Email OTP Verification status
-  const emailEntry = emailOtpStore.get(cleanEmail);
+  const emailEntry = await emailOtpStore.get(cleanEmail);
   const isEmailOtpValid = emailEntry && (emailEntry.isVerified || (otp && emailEntry.otp === otp.trim() && Date.now() <= emailEntry.expiresAt));
 
   // 2. Check Phone OTP Verification status as fallback
-  const phoneEntry = cleanPhone ? phoneOtpStore.get(cleanPhone) : null;
+  const phoneEntry = cleanPhone ? await phoneOtpStore.get(cleanPhone) : null;
   const isPhoneOtpValid = phoneEntry && (phoneEntry.isVerified || (otp && phoneEntry.otp === otp.trim() && Date.now() <= phoneEntry.expiresAt));
 
   if (!isEmailOtpValid && !isPhoneOtpValid) {
@@ -2128,14 +2143,14 @@ app.post('/api/auth/register-customer', (req, res) => {
   }
 
   const token = generateSessionToken('cust');
-  customerSessions.set(token, {
+  await customerSessions.set(token, {
     token,
     customerId: newCust.id,
     createdAt: Date.now(),
     lastActive: Date.now()
   });
-  emailOtpStore.delete(cleanEmail);
-  if (cleanPhone) phoneOtpStore.delete(cleanPhone);
+  await emailOtpStore.delete(cleanEmail);
+  if (cleanPhone) await phoneOtpStore.delete(cleanPhone);
 
   res.json({
     success: true,
@@ -2155,7 +2170,7 @@ app.post('/api/auth/register-customer', (req, res) => {
   });
 });
 
-app.post('/api/auth/login-customer', loginLimiter, (req, res) => {
+app.post('/api/auth/login-customer', loginLimiter, async (req, res) => {
   const { identifier, password } = req.body; // identifier can be username, email, or mobile phone
   const cleanId = (identifier || '').trim().toLowerCase();
   const cleanPhoneDigits = cleanId.replace(/\D/g, '');
@@ -2171,7 +2186,7 @@ app.post('/api/auth/login-customer', loginLimiter, (req, res) => {
   }
 
   const token = generateSessionToken('cust');
-  customerSessions.set(token, {
+  await customerSessions.set(token, {
     token,
     customerId: cust.id,
     createdAt: Date.now(),
@@ -2193,8 +2208,8 @@ app.post('/api/auth/login-customer', loginLimiter, (req, res) => {
   });
 });
 
-app.get('/api/customer/me', (req, res) => {
-  const sessionCustomer = getCustomerFromRequest(req);
+app.get('/api/customer/me', async (req, res) => {
+  const sessionCustomer = await getCustomerFromRequest(req);
   if (!sessionCustomer) {
     return res.json({ authenticated: false, customer: null });
   }
@@ -2212,20 +2227,20 @@ app.get('/api/customer/me', (req, res) => {
   });
 });
 
-app.post('/api/customer/logout', (req, res) => {
+app.post('/api/customer/logout', async (req, res) => {
   const authHeader = (req.headers['x-customer-token'] as string) || req.headers.authorization;
   let token = '';
   if (typeof authHeader === 'string') {
     token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader.trim();
   }
   if (token) {
-    customerSessions.delete(token);
+    await customerSessions.delete(token);
   }
   res.json({ success: true });
 });
 
-app.post('/api/customer/update-profile', (req, res) => {
-  const sessionCustomer = getCustomerFromRequest(req);
+app.post('/api/customer/update-profile', async (req, res) => {
+  const sessionCustomer = await getCustomerFromRequest(req);
   if (!sessionCustomer) {
     return res.status(401).json({ success: false, message: 'Not logged in' });
   }
@@ -2254,7 +2269,7 @@ app.post('/api/customer/update-profile', (req, res) => {
 });
 
 // ── STORE INFORMATION ROUTE ───────────────────────────────
-app.get('/api/store-info', (req, res) => {
+app.get('/api/store-info', async (req, res) => {
   res.json(storeInfo);
 });
 
@@ -2278,7 +2293,7 @@ app.put('/api/store-info', requireAdmin, async (req, res) => {
 });
 
 // ── ONLINE ORDERING ROUTES ──────────────────────────────────
-app.get('/api/online-orders', requireStaff, (req, res) => {
+app.get('/api/online-orders', requireStaff, async (req, res) => {
   const { status } = req.query;
   let list = [...onlineOrders];
   if (status && status !== 'all') {
@@ -2289,9 +2304,9 @@ app.get('/api/online-orders', requireStaff, (req, res) => {
   res.json(list);
 });
 
-app.get('/api/customer/orders', (req, res) => {
+app.get('/api/customer/orders', async (req, res) => {
   // Only the signed-in customer's own orders - never trust ids/emails from the URL
-  const sessionCustomer = getCustomerFromRequest(req);
+  const sessionCustomer = await getCustomerFromRequest(req);
   if (!sessionCustomer) {
     return res.status(401).json({ success: false, message: 'Please sign in to view your orders.' });
   }
@@ -2320,8 +2335,8 @@ app.get('/api/customer/orders', (req, res) => {
   }));
 });
 
-app.post('/api/online-orders/create', (req, res) => {
-  const sessionCustomer = getCustomerFromRequest(req);
+app.post('/api/online-orders/create', async (req, res) => {
+  const sessionCustomer = await getCustomerFromRequest(req);
   const { customerName, customerPhone, customerEmail, orderType, deliveryAddress, tableNumber, paymentMethod, items, notes, useLoyaltyPoints, gcashReferenceNumber, gcashReceiptImage } = req.body;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -2433,7 +2448,7 @@ app.post('/api/online-orders/create', (req, res) => {
 });
 
 app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
-  const staffUser = getStaffUserFromRequest(req);
+  const staffUser = await getStaffUserFromRequest(req);
   const { orderId, status, cancelReason } = req.body;
   console.log('[Cancel Debug]', { orderId, status, cancelReason });
   const order = onlineOrders.find(o => o.id === orderId);
@@ -2730,11 +2745,11 @@ function enrichProductWithStock(p: ProductRecord) {
 }
 
 // Categories & Products
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', async (req, res) => {
   res.json(categories);
 });
 
-app.get('/api/products', (req, res) => {
+app.get('/api/products', async (req, res) => {
   const { categoryId } = req.query;
   let list = products.filter(p => !p.isArchived);
   if (categoryId && categoryId !== 'all') {
@@ -2745,12 +2760,12 @@ app.get('/api/products', (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/products/all', requireAdmin, (req, res) => {
+app.get('/api/products/all', requireAdmin, async (req, res) => {
   const enriched = products.map(enrichProductWithStock);
   res.json(enriched);
 });
 
-app.post('/api/products', requireAdmin, (req, res) => {
+app.post('/api/products', requireAdmin, async (req, res) => {
   const { name, categoryId, price, imageUrl, productType, upsizePrice, recipes, upsizeRecipes } = req.body;
 
   const newProd: ProductRecord = {
@@ -2799,7 +2814,7 @@ app.post('/api/products', requireAdmin, (req, res) => {
   res.json({ success: true, product: newProd });
 });
 
-app.put('/api/products/:id', requireAdmin, (req, res) => {
+app.put('/api/products/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const pIndex = products.findIndex(p => p.id === id);
   if (pIndex === -1) return res.status(404).json({ error: 'Product not found' });
@@ -2855,7 +2870,7 @@ app.put('/api/products/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/products/:id', requireAdmin, (req, res) => {
+app.delete('/api/products/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const p = products.find(p => p.id === id);
   if (p) p.isAvailable = false;
@@ -2863,7 +2878,7 @@ app.delete('/api/products/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/products/:id/restore', requireAdmin, (req, res) => {
+app.post('/api/products/:id/restore', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const p = products.find(p => p.id === id);
   if (p) p.isAvailable = true;
@@ -2872,8 +2887,8 @@ app.post('/api/products/:id/restore', requireAdmin, (req, res) => {
 });
 
 // POS Transaction Handler
-app.post('/api/pos/transaction', requireStaff, (req, res) => {
-  const staffUser = getStaffUserFromRequest(req);
+app.post('/api/pos/transaction', requireStaff, async (req, res) => {
+  const staffUser = await getStaffUserFromRequest(req);
   const { paymentMethod, cashTendered, items } = req.body;
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -2965,7 +2980,7 @@ app.post('/api/pos/transaction', requireStaff, (req, res) => {
 });
 
 // Dashboard Analytics
-app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
+app.get('/api/dashboard/analytics', requireAdmin, async (req, res) => {
   const oneDay = 86400000;
   const dateKey = (timestamp: number): string => {
     const parts = new Intl.DateTimeFormat('en-US', {
@@ -3055,7 +3070,7 @@ app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
 });
 
 // Inventory Routes
-app.get('/api/inventory', requireStaff, (req, res) => {
+app.get('/api/inventory', requireStaff, async (req, res) => {
   const { category } = req.query;
   let list = inventory.filter(i => !i.isArchived);
   if (category && category !== 'all') {
@@ -3081,7 +3096,7 @@ app.get('/api/inventory', requireStaff, (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/inventory/logs', requireStaff, (req, res) => {
+app.get('/api/inventory/logs', requireStaff, async (req, res) => {
   const enriched = inventoryLogs.map(l => {
     const inv = inventory.find(i => i.id === l.inventoryItemId);
     return {
@@ -3095,7 +3110,7 @@ app.get('/api/inventory/logs', requireStaff, (req, res) => {
   res.json(enriched);
 });
 
-app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
+app.post('/api/inventory/add-stock', requireStaff, async (req, res) => {
   const { itemId, quantity, note, changeType } = req.body;
   const item = inventory.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -3123,7 +3138,7 @@ app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
   syncInventoryUpdateToCloudSql(item.id, item.currentStock).catch(err => console.error('Cloud SQL inv sync error:', err));
   syncInventoryUpdateToSupabase(item.id, item.currentStock).catch(err => console.error('Supabase inv sync error:', err));
 
-  const staffUser = getStaffUserFromRequest(req);
+  const staffUser = await getStaffUserFromRequest(req);
   inventoryLogs.push({
     id: `log-${Date.now()}`,
     inventoryItemId: item.id,
@@ -3137,8 +3152,8 @@ app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
   res.json({ success: true, newStock: item.currentStock });
 });
 
-app.post('/api/inventory/create', requireStaff, (req, res) => {
-  const staffUser = getStaffUserFromRequest(req);
+app.post('/api/inventory/create', requireStaff, async (req, res) => {
+  const staffUser = await getStaffUserFromRequest(req);
   const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName } = req.body;
   const newItem: InventoryRecord = {
     id: `inv-${Date.now()}`,
@@ -3154,7 +3169,7 @@ app.post('/api/inventory/create', requireStaff, (req, res) => {
   inventory.push(newItem);
 
   // Sync to Supabase
-  (async () => {
+  await (async () => {
     try {
       const { supabase, isSupabaseConfigured } = await import('./src/lib/supabase.ts');
       if (isSupabaseConfigured() && supabase) {
@@ -3193,7 +3208,7 @@ app.post('/api/inventory/create', requireStaff, (req, res) => {
   res.json({ success: true, item: newItem });
 });
 
-app.put('/api/inventory/:id', requireStaff, (req, res) => {
+app.put('/api/inventory/:id', requireStaff, async (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -3212,7 +3227,7 @@ app.put('/api/inventory/:id', requireStaff, (req, res) => {
   syncInventoryUpdateToCloudSql(item.id, item.currentStock).catch(err => console.error('Cloud SQL inv sync error:', err));
   
   // Sync inventory updates to Supabase
-  (async () => {
+  await (async () => {
     try {
       const { supabase, isSupabaseConfigured } = await import('./src/lib/supabase.ts');
       if (isSupabaseConfigured() && supabase) {
@@ -3235,7 +3250,7 @@ app.put('/api/inventory/:id', requireStaff, (req, res) => {
   res.json({ success: true, item });
 });
 
-app.delete('/api/inventory/:id', requireStaff, (req, res) => {
+app.delete('/api/inventory/:id', requireStaff, async (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (item) {
@@ -3245,7 +3260,7 @@ app.delete('/api/inventory/:id', requireStaff, (req, res) => {
 });
 
 // Reports Routes
-app.get('/api/reports/transactions', requireStaff, (req, res) => {
+app.get('/api/reports/transactions', requireStaff, async (req, res) => {
   const { from, to } = req.query;
 
   let filtered = [...transactions];
@@ -3261,7 +3276,7 @@ app.get('/api/reports/transactions', requireStaff, (req, res) => {
 });
 
 // Void Transaction / Cancel punched order endpoint
-app.post('/api/reports/transactions/:id/void', requireStaff, (req, res) => {
+app.post('/api/reports/transactions/:id/void', requireStaff, async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
@@ -3274,7 +3289,7 @@ app.post('/api/reports/transactions/:id/void', requireStaff, (req, res) => {
     return res.status(400).json({ success: false, message: 'This transaction is already voided.' });
   }
 
-  const staffUser = getStaffUserFromRequest(req);
+  const staffUser = await getStaffUserFromRequest(req);
 
   // Mark transaction status as Voided
   tx.status = 'Voided';
@@ -3295,7 +3310,7 @@ app.post('/api/reports/transactions/:id/void', requireStaff, (req, res) => {
 });
 
 // Archive Routes
-app.get('/api/archive', requireAdmin, (req, res) => {
+app.get('/api/archive', requireAdmin, async (req, res) => {
   const archivedProds = products.filter(p => !p.isAvailable);
   const archivedUsers = users.filter(u => !u.isActive);
   const archivedInv = inventory.filter(i => i.isArchived);
@@ -3306,7 +3321,7 @@ app.get('/api/archive', requireAdmin, (req, res) => {
   });
 });
 
-app.post('/api/archive/restore-product/:id', requireAdmin, (req, res) => {
+app.post('/api/archive/restore-product/:id', requireAdmin, async (req, res) => {
   const p = products.find(p => p.id === req.params.id);
   if (p) {
     p.isAvailable = true;
@@ -3315,7 +3330,7 @@ app.post('/api/archive/restore-product/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/archive/restore-user/:id', requireAdmin, (req, res) => {
+app.post('/api/archive/restore-user/:id', requireAdmin, async (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (u) {
     u.isActive = true;
@@ -3324,7 +3339,7 @@ app.post('/api/archive/restore-user/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/archive/restore-inventory/:id', requireAdmin, (req, res) => {
+app.post('/api/archive/restore-inventory/:id', requireAdmin, async (req, res) => {
   const i = inventory.find(inv => inv.id === req.params.id);
   if (i) {
     i.isArchived = false;
@@ -3334,7 +3349,7 @@ app.post('/api/archive/restore-inventory/:id', requireAdmin, (req, res) => {
 });
 
 // User Settings Management
-app.get('/api/users', requireAdmin, (req, res) => {
+app.get('/api/users', requireAdmin, async (req, res) => {
   res.json(users.map(u => ({
     id: u.id,
     fullName: u.fullName,
@@ -3347,7 +3362,7 @@ app.get('/api/users', requireAdmin, (req, res) => {
   })));
 });
 
-app.post('/api/users/create', requireAdmin, (req, res) => {
+app.post('/api/users/create', requireAdmin, async (req, res) => {
   const { fullName, username, password, role, contactNumber, phone, email } = req.body;
   if (!fullName || !username || !password) {
     return res.status(400).json({ success: false, message: 'Please complete all required fields.' });
@@ -3369,7 +3384,7 @@ app.post('/api/users/create', requireAdmin, (req, res) => {
       return res.status(400).json({ success: false, message: 'Email is already used' });
     }
 
-    const otpEntry = emailOtpStore.get(cleanEmail);
+    const otpEntry = await emailOtpStore.get(cleanEmail);
     if (!otpEntry || !otpEntry.isVerified) {
       return res.status(400).json({
         success: false,
@@ -3397,7 +3412,7 @@ app.post('/api/users/create', requireAdmin, (req, res) => {
 });
 
 // Update Staff User Details (Edit Staff)
-app.put('/api/users/:id', requireAdmin, (req, res) => {
+app.put('/api/users/:id', requireAdmin, async (req, res) => {
   const { fullName, username, role, phone, contactNumber, email, password } = req.body;
   const u = users.find(user => user.id === req.params.id);
   if (!u) {
@@ -3424,7 +3439,7 @@ app.put('/api/users/:id', requireAdmin, (req, res) => {
       }
 
       // Check OTP verification for the new email address
-      const otpEntry = emailOtpStore.get(cleanEmail);
+      const otpEntry = await emailOtpStore.get(cleanEmail);
       if (!otpEntry || !otpEntry.isVerified) {
         return res.status(400).json({
           success: false,
@@ -3474,7 +3489,7 @@ app.put('/api/users/:id', requireAdmin, (req, res) => {
   });
 });
 
-app.delete('/api/users/:id', requireAdmin, (req, res) => {
+app.delete('/api/users/:id', requireAdmin, async (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (!u) {
     return res.status(404).json({ success: false, message: 'User not found.' });
@@ -3483,14 +3498,14 @@ app.delete('/api/users/:id', requireAdmin, (req, res) => {
     return res.status(403).json({ success: false, message: 'The primary Administrator account cannot be deactivated.' });
   }
   u.isActive = false;
-  revokeStaffSessionsForUser(u.id);
+  await revokeStaffSessionsForUser(u.id);
   // Push to every connected device so the deactivated cashier is signed out immediately
   broadcastRealtimeEvent({ table: 'staff_sessions', eventType: 'REVOKED', new: { userId: u.id, reason: 'account_deactivated' } });
   syncUserToSupabase(u).catch(err => console.error('Supabase staff deactivate sync error:', err));
   res.json({ success: true, message: 'Staff member deactivated successfully.' });
 });
 
-app.post('/api/users/:id/reactivate', requireAdmin, (req, res) => {
+app.post('/api/users/:id/reactivate', requireAdmin, async (req, res) => {
   const u = users.find(u => u.id === req.params.id);
   if (!u) {
     return res.status(404).json({ success: false, message: 'User not found.' });
@@ -3500,7 +3515,7 @@ app.post('/api/users/:id/reactivate', requireAdmin, (req, res) => {
   res.json({ success: true, message: 'Staff member reactivated successfully.' });
 });
 
-app.post('/api/users/:id/change-password', requireAdmin, (req, res) => {
+app.post('/api/users/:id/change-password', requireAdmin, async (req, res) => {
   const { newPassword } = req.body;
   const u = users.find(u => u.id === req.params.id);
   if (u && newPassword) {
@@ -3574,7 +3589,7 @@ async function generateAIChatResponse(
 // AI Chatbot Route (CommonBot POS & Staff Assistant - Resilient Multi-Turn Support)
 app.post('/api/chatbot/ask', chatbotLimiter, requireStaff, async (req, res) => {
   const { question, history, messages: reqMessages } = req.body;
-  const staffUser = getStaffUserFromRequest(req);
+  const staffUser = await getStaffUserFromRequest(req);
   const userName = staffUser?.fullName || 'Barista / Admin';
 
   try {
@@ -3724,7 +3739,7 @@ app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
   const { question, customerId, customerName, history, messages: reqMessages } = req.body;
   
   // Resolve current logged-in customer info
-  let activeCust = getCustomerFromRequest(req);
+  let activeCust = await getCustomerFromRequest(req);
   if (!activeCust && customerId) {
     activeCust = customers.find(c => c.id === customerId) || null;
   }
@@ -3985,7 +4000,7 @@ ${generalInquiriesSummary}`;
 });
 
 // Catch-all for missing /api/* routes to prevent returning HTML index.html
-app.all('/api/*', (req, res) => {
+app.all('/api/*', async (req, res) => {
   res.status(404).json({ success: false, message: `API endpoint ${req.method} ${req.path} not found` });
 });
 
@@ -3997,6 +4012,11 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // Vite Middleware for Dev vs Production
 async function startServer() {
+  await hydrateFromSupabase({ users, customers, products, productRecipes,
+    productUpsizeRecipes, inventory, transactions, onlineOrders, storeInfo, categories, inventoryLogs
+  }, { strict: serverless || process.env.NODE_ENV === 'production', replace: serverless });
+  if (serverless) return;
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
@@ -4014,7 +4034,7 @@ async function startServer() {
       distPath = currentDir;
     }
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', async (req, res) => {
       const indexPath = path.join(distPath, 'index.html');
       if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
@@ -4024,26 +4044,13 @@ async function startServer() {
     });
   }
 
-  const server = app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', async () => {
     console.log(`CommonBrew POS Server running at http://0.0.0.0:${PORT}`);
 
     // Asynchronously synchronize data in background without blocking server HTTP requests
-    (async () => {
+    await (async () => {
       try {
         syncCloudSqlDatabase().catch(err => console.error('Cloud SQL initial sync failed:', err));
-        await migrateDataToSupabase().catch(err => console.error('Supabase initial migration failed:', err));
-        await hydrateFromSupabase({
-          users,
-          customers,
-          products,
-          productRecipes,
-          productUpsizeRecipes,
-          inventory,
-          transactions,
-          onlineOrders,
-          storeInfo
-        }).catch(err => console.error('Supabase hydration failed:', err));
-
         // Connect to Supabase Realtime WebSocket for instantaneous updates
         setupSupabaseRealtime(
           {
@@ -4093,4 +4100,13 @@ async function startServer() {
   });
 }
 
-startServer();
+await startServer();
+return app;
+}
+
+if (!process.env.VERCEL && !process.env.COMMONBREW_SERVERLESS) {
+  createApplication().catch(error => {
+    console.error('[Startup] Failed to load Supabase data:', error);
+    process.exit(1);
+  });
+}

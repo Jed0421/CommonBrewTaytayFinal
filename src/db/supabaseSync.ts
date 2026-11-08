@@ -1,3 +1,4 @@
+import { trackDatabaseTask } from '../lib/databaseTasks.ts';
 import { supabase, isSupabaseConfigured } from '../lib/supabase.ts';
 import {
   commonbrewCategories,
@@ -22,18 +23,50 @@ export async function hydrateFromSupabase(state: {
   transactions: any[];
   onlineOrders: any[];
   storeInfo: any;
-}) {
+  categories?: any[];
+  inventoryLogs?: any[];
+}, options: { strict?: boolean; replace?: boolean } = {}) {
   if (!isSupabaseConfigured() || !supabase) {
+    if (options.strict) throw new Error('Supabase server configuration is missing.');
     console.log('[Supabase Hydration] Skipped: Supabase not configured.');
     return;
   }
 
   try {
     console.log('[Supabase Hydration] Loading live data from Supabase...');
+    if (options.replace) {
+      state.users.length = state.customers.length = state.products.length = 0;
+      state.inventory.length = state.transactions.length = state.onlineOrders.length = 0;
+      state.productRecipes.length = state.productUpsizeRecipes.length = 0;
+      if (state.categories) state.categories.length = 0;
+    }
+    if (options.replace) {
+      for (const [table, target] of [
+        ['categories', state.categories], ['product_recipes', state.productRecipes],
+        ['product_upsize_recipes', state.productUpsizeRecipes]
+      ] as const) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (error) throw new Error('Supabase read failed: ' + table + ': ' + error.message);
+        if (target) for (const row of data || []) target.push(table === 'categories'
+          ? { id: row.id, name: row.name, isArchived: Boolean(row.is_archived) }
+          : { id: row.id, productId: row.product_id, inventoryItemId: row.inventory_item_id, quantity: Number(row.quantity) });
+      }
+    }
+
+    if (options.replace && state.inventoryLogs) {
+      const { data, error } = await supabase.from('inventory_logs').select('*').order('created_at', { ascending: false }).limit(200);
+      if (error) throw new Error('Supabase inventory log read failed: ' + error.message);
+      state.inventoryLogs.splice(0, state.inventoryLogs.length, ...(data || []).map(row => ({
+        id: row.id, inventoryItemId: row.inventory_item_id, changeType: row.change_type,
+        quantityChange: Number(row.quantity_change), note: row.note,
+        performedBy: row.performed_by, createdAt: row.created_at
+      })));
+    }
 
     // 1. Users (Staff and Customers)
     const { data: dbUsers, error: userErr } = await supabase.from('users').select('*');
     if (userErr) {
+      if (options.strict) throw new Error('Supabase read failed: ' + userErr.message);
       console.error('[Supabase Hydration] Error loading users:', userErr);
     } else if (dbUsers && dbUsers.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbUsers.length} users from Supabase.`);
@@ -96,6 +129,7 @@ export async function hydrateFromSupabase(state: {
     // 2. Products
     const { data: dbProducts, error: prodErr } = await supabase.from('products').select('*');
     if (prodErr) {
+      if (options.strict) throw new Error('Supabase read failed: ' + prodErr.message);
       console.error('[Supabase Hydration] Error loading products:', prodErr);
     } else if (dbProducts && dbProducts.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbProducts.length} products from Supabase.`);
@@ -146,6 +180,7 @@ export async function hydrateFromSupabase(state: {
     // 3. Inventory
     const { data: dbInv, error: invErr } = await supabase.from('inventory').select('*');
     if (invErr) {
+      if (options.strict) throw new Error('Supabase read failed: ' + invErr.message);
       console.error('[Supabase Hydration] Error loading inventory:', invErr);
     } else if (dbInv && dbInv.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbInv.length} inventory items from Supabase.`);
@@ -180,6 +215,7 @@ export async function hydrateFromSupabase(state: {
     // 4. Transactions
     const { data: dbTx, error: txErr } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(200);
     if (txErr) {
+      if (options.strict) throw new Error('Supabase read failed: ' + txErr.message);
       console.error('[Supabase Hydration] Error loading transactions:', txErr);
     } else if (dbTx && dbTx.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbTx.length} transactions from Supabase.`);
@@ -208,6 +244,7 @@ export async function hydrateFromSupabase(state: {
     // 5. Online Orders
     const { data: dbOrders, error: ordErr } = await supabase.from('online_orders').select('*').order('created_at', { ascending: false }).limit(200);
     if (ordErr) {
+      if (options.strict) throw new Error('Supabase read failed: ' + ordErr.message);
       console.error('[Supabase Hydration] Error loading online orders:', ordErr);
     } else if (dbOrders && dbOrders.length > 0) {
       console.log(`[Supabase Hydration] Loaded ${dbOrders.length} online orders from Supabase.`);
@@ -259,6 +296,7 @@ export async function hydrateFromSupabase(state: {
     console.log('[Supabase Hydration] State hydration completed successfully.');
   } catch (err) {
     console.error('[Supabase Hydration] Failed to hydrate data from Supabase:', err);
+    if (options.strict) throw err;
   }
 }
 
@@ -442,7 +480,7 @@ export async function migrateDataToSupabase() {
  * Synchronizes a User (Staff or Customer) to Supabase 'users' table.
  * Used when creating new accounts, updating staff info, or updating customer profiles.
  */
-export async function syncUserToSupabase(user: any, isCustomer = false) {
+async function syncUserToSupabaseImpl(user: any, isCustomer = false) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const payload = {
@@ -462,26 +500,27 @@ export async function syncUserToSupabase(user: any, isCustomer = false) {
     };
     const { error } = await supabase.from('users').upsert(payload);
     if (error) {
-      console.error('[Supabase User Sync] Error upserting user:', error);
+      throw error;
     } else {
       console.log(`[Supabase User Sync] Synced ${isCustomer ? 'Customer' : 'Staff'} ${user.username} (${user.id}) to Supabase.`);
     }
   } catch (err) {
     console.error('[Supabase User Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Convenience helper for Customer sync
  */
-export async function syncCustomerToSupabase(cust: any) {
+async function syncCustomerToSupabaseImpl(cust: any) {
   return syncUserToSupabase(cust, true);
 }
 
 /**
  * Synchronizes password change to Supabase (by user ID or email).
  */
-export async function syncPasswordToSupabase(userIdOrEmail: string, passwordHash: string) {
+async function syncPasswordToSupabaseImpl(userIdOrEmail: string, passwordHash: string) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const isEmail = userIdOrEmail.includes('@');
@@ -493,19 +532,20 @@ export async function syncPasswordToSupabase(userIdOrEmail: string, passwordHash
     }
     const { error } = await q;
     if (error) {
-      console.error('[Supabase Password Sync] Error updating password:', error);
+      throw error;
     } else {
       console.log(`[Supabase Password Sync] Password updated for ${userIdOrEmail} in Supabase.`);
     }
   } catch (err) {
     console.error('[Supabase Password Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Synchronizes Product changes (create/edit) to Supabase 'products' table.
  */
-export async function syncProductToSupabase(prod: any, recipes?: any[], upsizeRecipes?: any[]) {
+async function syncProductToSupabaseImpl(prod: any, recipes?: any[], upsizeRecipes?: any[]) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     if (prod.categoryId) {
@@ -533,7 +573,7 @@ export async function syncProductToSupabase(prod: any, recipes?: any[], upsizeRe
     };
     const { error: prodErr } = await supabase.from('products').upsert(payload);
     if (prodErr) {
-      console.error('[Supabase Product Sync] Error upserting product:', prodErr);
+      throw prodErr;
     } else {
       console.log(`[Supabase Product Sync] Product ${prod.name} (${prod.id}) synced to Supabase.`);
     }
@@ -570,22 +610,24 @@ export async function syncProductToSupabase(prod: any, recipes?: any[], upsizeRe
     }
   } catch (err) {
     console.error('[Supabase Product Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Synchronizes Product availability (mark available/unavailable/out-of-stock).
  */
-export async function syncProductAvailabilityToSupabase(productId: string, isAvailable: boolean) {
+async function syncProductAvailabilityToSupabaseImpl(productId: string, isAvailable: boolean) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const { error } = await supabase.from('products')
       .update({ is_available: isAvailable })
       .eq('id', productId);
-    if (error) console.error('[Supabase Product Availability] Error:', error);
+    if (error) throw error;
     else console.log(`[Supabase Product Availability] Set ${productId} is_available=${isAvailable}`);
   } catch (err) {
     console.error('[Supabase Product Availability] Exception:', err);
+    throw err;
   }
 }
 
@@ -593,7 +635,7 @@ export async function syncProductAvailabilityToSupabase(productId: string, isAva
  * Synchronizes POS Transaction to Supabase 'transactions' table with exact columns:
  * id, ref_code, items, subtotal, discount, discount_type, total, amount_tendered, change_amount, payment_method, cashier_name, is_voided, void_reason, created_at
  */
-export async function syncTransactionToSupabase(tx: any) {
+async function syncTransactionToSupabaseImpl(tx: any) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const isVoided = tx.status === 'Voided' || tx.status === 'void';
@@ -615,19 +657,20 @@ export async function syncTransactionToSupabase(tx: any) {
     };
     const { error } = await supabase.from('transactions').upsert(payload);
     if (error) {
-      console.error('[Supabase Transaction Sync] Error:', error);
+      throw error;
     } else {
       console.log(`[Supabase Transaction Sync] Transaction ${payload.ref_code} (${tx.id}) saved to Supabase.`);
     }
   } catch (err) {
     console.error('[Supabase Transaction Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Marks transaction as voided in Supabase.
  */
-export async function syncVoidTransactionToSupabase(txId: string, voidReason?: string, refCode?: string) {
+async function syncVoidTransactionToSupabaseImpl(txId: string, voidReason?: string, refCode?: string) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     let q = supabase.from('transactions').update({
@@ -641,12 +684,13 @@ export async function syncVoidTransactionToSupabase(txId: string, voidReason?: s
     }
     const { error } = await q;
     if (error) {
-      console.error('[Supabase Void Transaction] Error:', error);
+      throw error;
     } else {
       console.log(`[Supabase Void Transaction] Transaction ${txId} / ${refCode || ''} marked voided in Supabase.`);
     }
   } catch (err) {
     console.error('[Supabase Void Transaction] Exception:', err);
+    throw err;
   }
 }
 
@@ -654,7 +698,7 @@ export async function syncVoidTransactionToSupabase(txId: string, voidReason?: s
  * Synchronizes Online Order to Supabase 'online_orders' table with exact columns:
  * id, order_ref, customer_id, customer_name, customer_phone, customer_address, payment_method, delivery_type, items, subtotal, delivery_fee, loyalty_discount, loyalty_points_redeemed, total_amount, inventory_deducted, status, notes, created_at
  */
-export async function syncOnlineOrderToSupabase(order: any) {
+async function syncOnlineOrderToSupabaseImpl(order: any) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const payload = {
@@ -681,34 +725,36 @@ export async function syncOnlineOrderToSupabase(order: any) {
     };
     const { error } = await supabase.from('online_orders').upsert(payload);
     if (error) {
-      console.error('[Supabase Online Order Sync] Error:', error);
+      throw error;
     } else {
       console.log(`[Supabase Online Order Sync] Order ${order.orderRef} (${order.status}) synced to Supabase.`);
     }
   } catch (err) {
     console.error('[Supabase Online Order Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Synchronizes inventory current stock updates.
  */
-export async function syncInventoryUpdateToSupabase(itemId: string, newStock: number) {
+async function syncInventoryUpdateToSupabaseImpl(itemId: string, newStock: number) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const { error } = await supabase.from('inventory')
       .update({ current_stock: newStock, updated_at: new Date().toISOString() })
       .eq('id', itemId);
-    if (error) console.error('[Supabase Inventory Sync] Error:', error);
+    if (error) throw error;
   } catch (err) {
     console.error('[Supabase Inventory Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Logs inventory changes to Supabase 'inventory_logs' table.
  */
-export async function syncInventoryLogToSupabase(log: any) {
+async function syncInventoryLogToSupabaseImpl(log: any) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const payload = {
@@ -721,16 +767,17 @@ export async function syncInventoryLogToSupabase(log: any) {
       created_at: log.createdAt || new Date().toISOString()
     };
     const { error } = await supabase.from('inventory_logs').insert(payload);
-    if (error) console.error('[Supabase Inventory Log Sync] Error:', error);
+    if (error) throw error;
   } catch (err) {
     console.error('[Supabase Inventory Log Sync] Exception:', err);
+    throw err;
   }
 }
 
 /**
  * Synchronizes store settings to Supabase 'store_settings' table.
  */
-export async function syncStoreSettingsToSupabase(store: any) {
+async function syncStoreSettingsToSupabaseImpl(store: any) {
   if (!isSupabaseConfigured() || !supabase) return;
   try {
     const payload = {
@@ -748,10 +795,11 @@ export async function syncStoreSettingsToSupabase(store: any) {
       updated_at: new Date().toISOString()
     };
     const { error } = await supabase.from('store_settings').upsert(payload);
-    if (error) console.error('[Supabase Store Settings Sync] Error:', error);
+    if (error) throw error;
     else console.log('[Supabase Store Settings Sync] Store settings updated in Supabase.');
   } catch (err) {
     console.error('[Supabase Store Settings Sync] Exception:', err);
+    throw err;
   }
 }
 
@@ -1252,3 +1300,14 @@ export function startContinuousSupabaseSync(
 
   return pollInterval;
 }
+export const syncUserToSupabase = (...args: Parameters<typeof syncUserToSupabaseImpl>) => trackDatabaseTask(syncUserToSupabaseImpl(...args));
+export const syncCustomerToSupabase = (...args: Parameters<typeof syncCustomerToSupabaseImpl>) => trackDatabaseTask(syncCustomerToSupabaseImpl(...args));
+export const syncPasswordToSupabase = (...args: Parameters<typeof syncPasswordToSupabaseImpl>) => trackDatabaseTask(syncPasswordToSupabaseImpl(...args));
+export const syncProductToSupabase = (...args: Parameters<typeof syncProductToSupabaseImpl>) => trackDatabaseTask(syncProductToSupabaseImpl(...args));
+export const syncProductAvailabilityToSupabase = (...args: Parameters<typeof syncProductAvailabilityToSupabaseImpl>) => trackDatabaseTask(syncProductAvailabilityToSupabaseImpl(...args));
+export const syncTransactionToSupabase = (...args: Parameters<typeof syncTransactionToSupabaseImpl>) => trackDatabaseTask(syncTransactionToSupabaseImpl(...args));
+export const syncVoidTransactionToSupabase = (...args: Parameters<typeof syncVoidTransactionToSupabaseImpl>) => trackDatabaseTask(syncVoidTransactionToSupabaseImpl(...args));
+export const syncOnlineOrderToSupabase = (...args: Parameters<typeof syncOnlineOrderToSupabaseImpl>) => trackDatabaseTask(syncOnlineOrderToSupabaseImpl(...args));
+export const syncInventoryUpdateToSupabase = (...args: Parameters<typeof syncInventoryUpdateToSupabaseImpl>) => trackDatabaseTask(syncInventoryUpdateToSupabaseImpl(...args));
+export const syncInventoryLogToSupabase = (...args: Parameters<typeof syncInventoryLogToSupabaseImpl>) => trackDatabaseTask(syncInventoryLogToSupabaseImpl(...args));
+export const syncStoreSettingsToSupabase = (...args: Parameters<typeof syncStoreSettingsToSupabaseImpl>) => trackDatabaseTask(syncStoreSettingsToSupabaseImpl(...args));

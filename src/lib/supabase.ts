@@ -1,24 +1,14 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Retrieve Supabase environment variables from either process.env (server) or import.meta.env (client Vite)
-const getEnvVar = (key: string): string => {
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key] as string;
-  }
-  // Vite client fallback
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env) {
-    return ((import.meta as any).env[`VITE_${key}`] || (import.meta as any).env[key] || '') as string;
-  }
-  return '';
-};
-
+// Explicit Vite references are replaced at build time. Never expose the server key.
 const isServer = typeof window === 'undefined';
-
-// Only use default remote URL/key on the server where CORS does not apply and secrets are safe
-const supabaseUrl = getEnvVar('SUPABASE_URL') || getEnvVar('VITE_SUPABASE_URL') || (isServer ? 'https://itgzbiizvdkuwozqbnqo.supabase.co' : '');
+const browserEnv = import.meta.env;
+const supabaseUrl = isServer
+  ? (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '')
+  : (browserEnv?.VITE_SUPABASE_URL || '');
 const supabaseServiceKey = isServer
-  ? (getEnvVar('SUPABASE_SERVICE_KEY') || getEnvVar('SUPABASE_ANON_KEY') || '')
-  : (getEnvVar('VITE_SUPABASE_ANON_KEY') || getEnvVar('SUPABASE_ANON_KEY') || '');
+  ? (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '')
+  : (browserEnv?.VITE_SUPABASE_ANON_KEY || '');
 
 // Tell whether a Supabase key is the secret server key or the public (anon/publishable) one
 function describeKey(key: string): string {
