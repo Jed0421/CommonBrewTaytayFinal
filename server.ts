@@ -18,6 +18,7 @@ import {
 import { syncCloudSqlDatabase, syncTransactionToCloudSql, syncOnlineOrderToCloudSql, syncInventoryUpdateToCloudSql } from './src/db/sync.ts';
 import {
   hydrateFromSupabase,
+  type HydrationScope,
   setupSupabaseRealtime,
   startContinuousSupabaseSync,
   syncUserToSupabase,
@@ -36,7 +37,7 @@ import {
 // Each Vercel invocation gets an isolated, fresh database snapshot.
 const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
 
-export async function createApplication(serverless = false) {
+export async function createApplication(serverless = false, scope: HydrationScope = 'full') {
 const currentDir = typeof __dirname !== 'undefined' ? __dirname : (typeof import.meta !== 'undefined' && import.meta.url ? path.dirname(fileURLToPath(import.meta.url)) : process.cwd());
 
 const app = express();
@@ -4014,7 +4015,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 async function startServer() {
   await hydrateFromSupabase({ users, customers, products, productRecipes,
     productUpsizeRecipes, inventory, transactions, onlineOrders, storeInfo, categories, inventoryLogs
-  }, { strict: serverless || process.env.NODE_ENV === 'production', replace: serverless });
+  }, { strict: serverless || process.env.NODE_ENV === 'production', replace: serverless, scope });
   if (serverless) return;
 
   if (process.env.NODE_ENV !== 'production') {

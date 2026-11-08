@@ -13,6 +13,8 @@ import bcrypt from 'bcryptjs';
  * Hydrates the server's in-memory state with existing records from Supabase
  * so everything is kept in sync with the database across restarts and reloads.
  */
+export type HydrationScope = 'full' | 'menu' | 'categories' | 'accounts' | 'store';
+
 export async function hydrateFromSupabase(state: {
   users: any[];
   customers: any[];
@@ -25,7 +27,7 @@ export async function hydrateFromSupabase(state: {
   storeInfo: any;
   categories?: any[];
   inventoryLogs?: any[];
-}, options: { strict?: boolean; replace?: boolean } = {}) {
+}, options: { strict?: boolean; replace?: boolean; scope?: HydrationScope } = {}) {
   if (!isSupabaseConfigured() || !supabase) {
     if (options.strict) throw new Error('Supabase server configuration is missing.');
     console.log('[Supabase Hydration] Skipped: Supabase not configured.');
@@ -40,12 +42,40 @@ export async function hydrateFromSupabase(state: {
       state.productRecipes.length = state.productUpsizeRecipes.length = 0;
       if (state.categories) state.categories.length = 0;
     }
+    const scope = options.scope ?? 'full';
+    const full = scope === 'full';
+    const menu = scope === 'menu';
+    const skipped = { data: null, error: null };
+    // Fetch independent tables together, and skip tables this route does not need.
+    const [
+      usersResult,
+      productsResult,
+      inventoryResult,
+      transactionsResult,
+      ordersResult,
+      storeResult,
+      logsResult,
+      categoriesResult,
+      recipesResult,
+      upsizeResult
+    ] = await Promise.all([
+      (full || scope === "accounts") ? supabase.from('users').select('*') : skipped,
+      (full || menu) ? supabase.from('products').select('*') : skipped,
+      (full || menu) ? supabase.from('inventory').select('*') : skipped,
+      (full) ? supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(200) : skipped,
+      (full) ? supabase.from('online_orders').select('*').order('created_at', { ascending: false }).limit(200) : skipped,
+      (full || scope === "store") ? supabase.from('store_settings').select('*').limit(1) : skipped,
+      (full && options.replace && state.inventoryLogs) ? supabase.from('inventory_logs').select('*').order('created_at', { ascending: false }).limit(200) : skipped,
+      (options.replace && (full || menu || scope === "categories")) ? supabase.from('categories').select('*') : skipped,
+      (options.replace && (full || menu)) ? supabase.from('product_recipes').select('*') : skipped,
+      (options.replace && (full || menu)) ? supabase.from('product_upsize_recipes').select('*') : skipped
+    ]);
     if (options.replace) {
-      for (const [table, target] of [
-        ['categories', state.categories], ['product_recipes', state.productRecipes],
-        ['product_upsize_recipes', state.productUpsizeRecipes]
+      for (const [table, target, { data, error }] of [
+        ['categories', state.categories, categoriesResult],
+        ['product_recipes', state.productRecipes, recipesResult],
+        ['product_upsize_recipes', state.productUpsizeRecipes, upsizeResult]
       ] as const) {
-        const { data, error } = await supabase.from(table).select('*');
         if (error) throw new Error('Supabase read failed: ' + table + ': ' + error.message);
         if (target) for (const row of data || []) target.push(table === 'categories'
           ? { id: row.id, name: row.name, isArchived: Boolean(row.is_archived) }
@@ -54,7 +84,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     if (options.replace && state.inventoryLogs) {
-      const { data, error } = await supabase.from('inventory_logs').select('*').order('created_at', { ascending: false }).limit(200);
+      const { data, error } = logsResult;
       if (error) throw new Error('Supabase inventory log read failed: ' + error.message);
       state.inventoryLogs.splice(0, state.inventoryLogs.length, ...(data || []).map(row => ({
         id: row.id, inventoryItemId: row.inventory_item_id, changeType: row.change_type,
@@ -64,7 +94,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 1. Users (Staff and Customers)
-    const { data: dbUsers, error: userErr } = await supabase.from('users').select('*');
+    const { data: dbUsers, error: userErr } = usersResult;
     if (userErr) {
       if (options.strict) throw new Error('Supabase read failed: ' + userErr.message);
       console.error('[Supabase Hydration] Error loading users:', userErr);
@@ -127,7 +157,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 2. Products
-    const { data: dbProducts, error: prodErr } = await supabase.from('products').select('*');
+    const { data: dbProducts, error: prodErr } = productsResult;
     if (prodErr) {
       if (options.strict) throw new Error('Supabase read failed: ' + prodErr.message);
       console.error('[Supabase Hydration] Error loading products:', prodErr);
@@ -178,7 +208,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 3. Inventory
-    const { data: dbInv, error: invErr } = await supabase.from('inventory').select('*');
+    const { data: dbInv, error: invErr } = inventoryResult;
     if (invErr) {
       if (options.strict) throw new Error('Supabase read failed: ' + invErr.message);
       console.error('[Supabase Hydration] Error loading inventory:', invErr);
@@ -213,7 +243,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 4. Transactions
-    const { data: dbTx, error: txErr } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(200);
+    const { data: dbTx, error: txErr } = transactionsResult;
     if (txErr) {
       if (options.strict) throw new Error('Supabase read failed: ' + txErr.message);
       console.error('[Supabase Hydration] Error loading transactions:', txErr);
@@ -242,7 +272,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 5. Online Orders
-    const { data: dbOrders, error: ordErr } = await supabase.from('online_orders').select('*').order('created_at', { ascending: false }).limit(200);
+    const { data: dbOrders, error: ordErr } = ordersResult;
     if (ordErr) {
       if (options.strict) throw new Error('Supabase read failed: ' + ordErr.message);
       console.error('[Supabase Hydration] Error loading online orders:', ordErr);
@@ -278,7 +308,7 @@ export async function hydrateFromSupabase(state: {
     }
 
     // 6. Store Settings
-    const { data: dbStore, error: storeErr } = await supabase.from('store_settings').select('*').limit(1);
+    const { data: dbStore, error: storeErr } = storeResult;
     if (!storeErr && dbStore && dbStore[0]) {
       const s = dbStore[0];
       if (s.store_name) state.storeInfo.name = s.store_name;

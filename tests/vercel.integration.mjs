@@ -52,6 +52,8 @@ try{
  const firstStore=new PersistentStore('email-otp',true);const secondStore=new PersistentStore('email-otp',true);
  await firstStore.set('test@example.test',{otp:'123456',expiresAt:Date.now()+60000,isVerified:false});assert.equal((await secondStore.get('test@example.test')).otp,'123456');
  await firstStore.set('expired@example.test',{otp:'123456',expiresAt:Date.now()-1,isVerified:false});assert.equal(await secondStore.get('expired@example.test'),undefined);
- failUsers=true;r=await call('/api/products');assert.equal(r.status,503);
+ failUsers=true;
+ r=await call('/api/products');assert.equal(r.status,200);
+ r=await call('/api/auth/unified-login',{identifier:'tester',password:'correct-password'});assert.equal(r.status,503);
  console.log('PASS: products from database; wrong password rejected; staff/customer login; cross-instance session; logout; no raw stored tokens; database failure returns 503.');
 }finally{server.close();server.closeAllConnections();}
