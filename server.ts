@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { discardPendingReceipt, readPendingReceipt, stageReceipt, withReceiptPreviews } from './src/lib/gcashReceipts.ts';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
@@ -171,6 +172,7 @@ interface OnlineOrderRecord {
   gcashAccount?: string;
   gcashReferenceNumber?: string;
   gcashReceiptImage?: string;
+  gcashReceiptPending?: boolean;
   cancelReason?: string;
   cancelledAt?: string;
   items: OnlineOrderItemRecord[];
@@ -954,7 +956,7 @@ app.post('/api/auth/logout', (req, res) => {
 // ── REALTIME SERVER-SENT EVENTS (SSE) STREAM ─────────────────
 const sseClients = new Set<express.Response>();
 
-const SENSITIVE_FIELDS = ['password_hash', 'passwordHash', 'otp'];
+const SENSITIVE_FIELDS = ['password_hash', 'passwordHash', 'otp', 'gcash_receipt_image', 'gcashReceiptImage'];
 function stripSensitive(row: any) {
   if (!row || typeof row !== 'object') return row;
   const copy = { ...row };
@@ -2286,7 +2288,7 @@ app.get('/api/online-orders', requireStaff, (req, res) => {
   }
   // Sort newest first
   list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  res.json(list);
+  res.json(await withReceiptPreviews(list));
 });
 
 app.get('/api/customer/orders', (req, res) => {
@@ -2311,13 +2313,13 @@ app.get('/api/customer/orders', (req, res) => {
   });
 
   myOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  res.json(myOrders.map(o => {
+  res.json(await withReceiptPreviews(myOrders.map(o => {
     if (o.status === 'Cancelled' && !o.cancelReason) {
       const m = (o.notes || '').match(/\[Cancelled: ([^\]]+)\]/);
       if (m) return { ...o, cancelReason: m[1] };
     }
     return o;
-  }));
+  })));
 });
 
 app.post('/api/online-orders/create', (req, res) => {
@@ -2331,10 +2333,10 @@ app.post('/api/online-orders/create', (req, res) => {
   // Enforce GCash Payment Receipt requirement for GCash payments
   if (paymentMethod === 'GCash') {
     const cleanGcashReceipt = typeof gcashReceiptImage === 'string' ? gcashReceiptImage.trim() : '';
-    if (!cleanGcashReceipt) {
+    if (!/^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i.test(cleanGcashReceipt) || cleanGcashReceipt.length > 5_000_000) {
       return res.status(400).json({
         success: false,
-        message: 'GCash Payment Receipt is required to proceed and confirm your order. Please download your GCash payment receipt and upload it.'
+        message: 'Upload a valid JPEG, PNG, WebP, or GIF GCash receipt under 3.75 MB.'
       });
     }
   }
@@ -2351,7 +2353,7 @@ app.post('/api/online-orders/create', (req, res) => {
     loyaltyDiscount = Math.min(110, subtotal + deliveryFee);
     loyaltyPointsRedeemed = 100;
     // Deduct 100 points so any remaining points (e.g., 105 - 100 = 5) remain in customer balance
-    sessionCustomer.loyaltyPoints = Math.max(0, sessionCustomer.loyaltyPoints - 100);
+
   }
 
   const totalAmount = Math.max(0, subtotal + deliveryFee - loyaltyDiscount);
@@ -2359,7 +2361,7 @@ app.post('/api/online-orders/create', (req, res) => {
   const orderRef = `CB-ONL-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const newOrder: OnlineOrderRecord = {
-    id: `onl-${Date.now()}`,
+    id: `onl-${crypto.randomUUID()}`,
     orderRef,
     customerId: sessionCustomer?.id || undefined,
     customerName: customerName || sessionCustomer?.fullName || 'Guest Customer',
@@ -2371,7 +2373,7 @@ app.post('/api/online-orders/create', (req, res) => {
     paymentMethod: paymentMethod || 'GCash',
     gcashAccount: paymentMethod === 'GCash' ? '09474960778' : undefined,
     gcashReferenceNumber: paymentMethod === 'GCash' ? (gcashReferenceNumber || undefined) : undefined,
-    gcashReceiptImage: paymentMethod === 'GCash' ? (gcashReceiptImage || undefined) : undefined,
+    gcashReceiptImage: paymentMethod === 'GCash' ? gcashReceiptImage.trim() : undefined,
     items: items.map((i: any) => ({
       productId: i.productId,
       productName: i.productName,
@@ -2395,11 +2397,31 @@ app.post('/api/online-orders/create', (req, res) => {
     createdAt: now.toISOString()
   };
 
+  if (newOrder.gcashReceiptImage) {
+    try {
+      await stageReceipt(newOrder.id, newOrder.gcashReceiptImage);
+      newOrder.gcashReceiptPending = true;
+    } catch (error) {
+      console.error('[GCash receipt upload]', error);
+      return res.status(503).json({ success: false, message: 'Could not upload the receipt. Please try again.' });
+    }
+  }
+  try {
+    await syncOnlineOrderToSupabase(newOrder);
+  } catch (error) {
+    if (newOrder.gcashReceiptPending) {
+      await discardPendingReceipt(newOrder.id).catch(cleanupError => console.error('[GCash receipt cleanup]', cleanupError));
+    }
+    console.error('Supabase online order sync error:', error);
+    return res.status(503).json({ success: false, message: 'Could not save the order. Please try again.' });
+  }
+  if (isRedeemingLoyalty && sessionCustomer) {
+    sessionCustomer.loyaltyPoints = Math.max(0, sessionCustomer.loyaltyPoints - 100);
+  }
   onlineOrders.unshift(newOrder);
 
   // Sync online order to Cloud SQL and Supabase
   syncOnlineOrderToCloudSql(newOrder).catch(err => console.error('Cloud SQL online order sync error:', err));
-  syncOnlineOrderToSupabase(newOrder).catch(err => console.error('Supabase online order sync error:', err));
 
   // Immediately deduct inventory stock (including add-ons such as Nata De Coco)
   deductInventoryForOrder(newOrder.items, newOrder.orderRef, 'Online Customer Order');
@@ -2442,6 +2464,14 @@ app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
     return res.status(404).json({ success: false, message: 'Order not found' });
   }
 
+  if (status === 'Completed' && order.gcashReceiptPending && !order.gcashReceiptImage) {
+    try {
+      order.gcashReceiptImage = await readPendingReceipt(order.id);
+    } catch (error) {
+      console.error('[GCash receipt recovery]', error);
+      return res.status(503).json({ success: false, message: 'Could not retrieve the receipt. Please retry completion.' });
+    }
+  }
   const oldStatus = order.status;
   order.status = status;
   order.updatedAt = new Date().toISOString();
@@ -2449,6 +2479,7 @@ app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
     // Record why the order was cancelled (e.g. fake / random GCash receipt)
   if (status === 'Cancelled') {
     const reasonText = (typeof cancelReason === 'string' ? cancelReason.trim() : '').slice(0, 300) || 'No reason provided';
+    delete order.gcashReceiptImage;
     order.cancelReason = reasonText;
     order.cancelledAt = order.updatedAt;
     // Also keep it in notes so it survives DB sync (no dedicated column)
@@ -2619,7 +2650,17 @@ For immediate inquiries, call 09474960778 or email commonbrewtaytay@gmail.com.
 
   // Also sync online order updated status to Cloud SQL & Supabase
   syncOnlineOrderToCloudSql(order).catch(err => console.error('Cloud SQL order status sync error:', err));
-  syncOnlineOrderToSupabase(order).catch(err => console.error('Supabase order status sync error:', err));
+  try {
+    await syncOnlineOrderToSupabase(order);
+    if ((status === 'Completed' || status === 'Cancelled') && order.gcashReceiptPending) {
+      await discardPendingReceipt(order.id);
+      order.gcashReceiptPending = false;
+      await syncOnlineOrderToSupabase(order);
+    }
+  } catch (error) {
+    console.error('Supabase order status sync error:', error);
+    return res.status(503).json({ success: false, message: 'Could not finish saving the order update. Retry the same status.' });
+  }
 
   res.json({
     success: true,

@@ -229,6 +229,8 @@ export async function hydrateFromSupabase(state: {
             loyaltyDiscount: Number(row.loyalty_discount) || 0,
             loyaltyPointsRedeemed: Number(row.loyalty_points_redeemed) || 0,
             totalAmount: Number(row.total_amount) || 0,
+            gcashReceiptImage: row.gcash_receipt_image || undefined,
+            gcashReceiptPending: Boolean(row.gcash_receipt_pending),
             inventoryDeducted: Boolean(row.inventory_deducted),
             status: row.status || 'Pending',
             notes: row.notes || undefined,
@@ -672,6 +674,10 @@ export async function syncOnlineOrderToSupabase(order: any) {
       loyalty_discount: Number(order.loyaltyDiscount) || 0,
       loyalty_points_redeemed: Number(order.loyaltyPointsRedeemed) || 0,
       total_amount: Number(order.totalAmount) || 0,
+      gcash_receipt_pending: Boolean(order.gcashReceiptPending),
+      gcash_receipt_image: order.paymentMethod === 'GCash' && order.status === 'Completed'
+        ? order.gcashReceiptImage || null
+        : null,
       inventory_deducted: Boolean(order.inventoryDeducted),
       status: order.status || 'Pending',
       notes: order.notes || null,
@@ -681,12 +687,12 @@ export async function syncOnlineOrderToSupabase(order: any) {
     };
     const { error } = await supabase.from('online_orders').upsert(payload);
     if (error) {
-      console.error('[Supabase Online Order Sync] Error:', error);
+      throw error;
     } else {
       console.log(`[Supabase Online Order Sync] Order ${order.orderRef} (${order.status}) synced to Supabase.`);
     }
   } catch (err) {
-    console.error('[Supabase Online Order Sync] Exception:', err);
+    throw err;
   }
 }
 
@@ -977,6 +983,11 @@ export function setupSupabaseRealtime(
                 const existing = state.onlineOrders.find(o => o.id === newRow.id || o.orderRef === newRow.order_ref);
                 if (existing) {
                   existing.status = newRow.status || existing.status;
+                  existing.gcashReceiptPending = Boolean(newRow.gcash_receipt_pending);
+                  if (existing.status === 'Cancelled') delete existing.gcashReceiptImage;
+                  if (existing.status === 'Completed' && newRow.gcash_receipt_image) {
+                    existing.gcashReceiptImage = newRow.gcash_receipt_image;
+                  }
                   existing.cancelReason = newRow.cancel_reason || existing.cancelReason;
                   existing.cancelledAt = newRow.cancelled_at || existing.cancelledAt;
                   existing.deliveryAddress = newRow.customer_address || existing.deliveryAddress;
@@ -997,6 +1008,8 @@ export function setupSupabaseRealtime(
                     loyaltyDiscount: Number(newRow.loyalty_discount) || 0,
                     loyaltyPointsRedeemed: Number(newRow.loyalty_points_redeemed) || 0,
                     totalAmount: Number(newRow.total_amount) || 0,
+                    gcashReceiptImage: newRow.gcash_receipt_image || undefined,
+                    gcashReceiptPending: Boolean(newRow.gcash_receipt_pending),
                     inventoryDeducted: Boolean(newRow.inventory_deducted),
                     status: newRow.status || 'Pending',
                     notes: newRow.notes,
@@ -1225,7 +1238,7 @@ export function startContinuousSupabaseSync(
       }
 
       // 5. Check Online Orders
-      const { data: dbOrders } = await client.from('online_orders').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data: dbOrders } = await client.from('online_orders').select('id,order_ref,status,total_amount').order('created_at', { ascending: false }).limit(50);
       if (dbOrders && Array.isArray(dbOrders)) {
         let changed = false;
         for (const o of dbOrders) {
