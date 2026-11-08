@@ -2280,7 +2280,7 @@ app.put('/api/store-info', requireAdmin, async (req, res) => {
 });
 
 // ── ONLINE ORDERING ROUTES ──────────────────────────────────
-app.get('/api/online-orders', requireStaff, (req, res) => {
+app.get('/api/online-orders', requireStaff, async (req, res) => {
   const { status } = req.query;
   let list = [...onlineOrders];
   if (status && status !== 'all') {
@@ -2291,7 +2291,7 @@ app.get('/api/online-orders', requireStaff, (req, res) => {
   res.json(await withReceiptPreviews(list));
 });
 
-app.get('/api/customer/orders', (req, res) => {
+app.get('/api/customer/orders', async (req, res) => {
   // Only the signed-in customer's own orders - never trust ids/emails from the URL
   const sessionCustomer = getCustomerFromRequest(req);
   if (!sessionCustomer) {
@@ -2322,7 +2322,7 @@ app.get('/api/customer/orders', (req, res) => {
   })));
 });
 
-app.post('/api/online-orders/create', (req, res) => {
+app.post('/api/online-orders/create', async (req, res) => {
   const sessionCustomer = getCustomerFromRequest(req);
   const { customerName, customerPhone, customerEmail, orderType, deliveryAddress, tableNumber, paymentMethod, items, notes, useLoyaltyPoints, gcashReferenceNumber, gcashReceiptImage } = req.body;
 
