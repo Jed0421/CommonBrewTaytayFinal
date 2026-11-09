@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { startCriticalStockEmailWorker } from './src/lib/criticalStockEmail.ts';
 import { commonBrewEmail, emailEscape, emailMoney, emailParagraph } from './src/lib/commonBrewEmail.ts';
 import { sendRealEmail } from './src/lib/sendEmail.ts';
 import { discardPendingReceipt, readPendingReceipt, stageReceipt, withReceiptPreviews } from './src/lib/gcashReceipts.ts';
@@ -3742,6 +3743,8 @@ async function startServer() {
 
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`CommonBrew POS Server running at http://0.0.0.0:${PORT}`);
+
+    startCriticalStockEmailWorker();
 
     // Asynchronously synchronize data in background without blocking server HTTP requests
     (async () => {
