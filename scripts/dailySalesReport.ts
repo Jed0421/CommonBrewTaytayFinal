@@ -75,6 +75,17 @@ async function main() {
   if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
     throw new Error('Set DAILY_SALES_REPORT_EMAIL to the owner or admin email address.');
   }
+  const gmailKeys = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'];
+  const missingGmail = gmailKeys.filter(key => !process.env[key]?.trim());
+  const smtpConfigured = Boolean(process.env.SMTP_PASS?.replace(/\s+/g, ''));
+  const resendConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
+  if (missingGmail.length && !smtpConfigured && !resendConfigured) {
+    throw new Error(
+      'No email provider configured in GitHub Actions. Missing Gmail API secrets: ' +
+      missingGmail.join(', ') + '. Alternatively configure SMTP_PASS or RESEND_API_KEY.'
+    );
+  }
+
   const { error: claimError } = await supabase.from('daily_sales_report_runs').insert({ report_date: date });
   if (claimError?.code === '23505') {
     console.log('A report run already exists for ' + date + '. Check sent_at before retrying.');
