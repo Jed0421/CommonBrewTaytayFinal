@@ -39,16 +39,11 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [printStatus, setPrintStatus] = useState<string>('Receipt Generated');
-  const [paperSize, setPaperSize] = useState<'80mm' | '58mm' | 'letter'>('80mm');
 
   const storeName = receipt.storeName || 'COMMONBREW COFFEE TAYTAY';
   const storeAddress = receipt.storeAddress || 'Manila East Road, Brgy. San Juan, Taytay, Rizal';
   const storePhone = receipt.storePhone || '0947-496-0778';
   const cashierName = receipt.cashierName || 'Cashier';
-
-  // Tax calculations (Philippine 12% EVAT standard)
-  const vatableSales = receipt.totalAmount / 1.12;
-  const vatAmount = receipt.totalAmount - vatableSales;
 
   // Calculate unit price including addons & upsize for item
   const calculateItemPrice = (item: ReceiptItem) => {
@@ -72,7 +67,6 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
     text += `   Handcrafted Drinks & Fresh Brews\n`;
     text += ` ${storeAddress}\n`;
     text += `         Tel: ${storePhone}\n`;
-    text += `      VAT Reg TIN: 432-871-902-00000\n`;
     text += `      POS Terminal ID: POS-01 (Taytay)\n`;
     text += `${line}\n`;
     text += `OFFICIAL RECEIPT: ${receipt.ref}\n`;
@@ -102,9 +96,6 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 
     text += `${dash}\n`;
     text += `Subtotal:                          ₱${receipt.totalAmount.toFixed(2)}\n`;
-    text += `Vatable Sales (12%):               ₱${vatableSales.toFixed(2)}\n`;
-    text += `12% EVAT:                          ₱${vatAmount.toFixed(2)}\n`;
-    text += `VAT-Exempt Sales:                  ₱0.00\n`;
     text += `${line}\n`;
     text += `TOTAL AMOUNT DUE:                  ₱${receipt.totalAmount.toFixed(2)}\n`;
     text += `${line}\n`;
@@ -130,56 +121,22 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       document.head.appendChild(parentStyle);
     }
 
-    const paperWidth = paperSize === '58mm' ? 58 : (paperSize === 'letter' ? 215.9 : 80);
-    const receiptEl = document.getElementById('printable-pos-receipt');
-    const scrollHeightPx = receiptEl ? receiptEl.scrollHeight : 500;
-    const measuredHeightMm = Math.max(90, Math.ceil(scrollHeightPx * 0.264583) + 4);
-
-    if (paperSize === 'letter') {
-      parentStyle.innerHTML = `
-        @media print {
-          @page {
-            size: letter portrait !important;
-            margin: 0.5in !important;
-          }
-          #printable-pos-receipt {
-            margin: 0 auto !important;
-            width: 80mm !important;
-            max-width: 80mm !important;
-          }
+    parentStyle.innerHTML = `
+      @media print {
+        @page { size: A4 portrait !important; margin: 12mm !important; }
+        #printable-pos-receipt {
+          width: 100% !important;
+          max-width: none !important;
+          margin: 0 !important;
         }
-      `;
-    } else {
-      parentStyle.innerHTML = `
-        @media print {
-          @page {
-            size: ${paperWidth}mm ${measuredHeightMm}mm !important;
-            margin: 0mm !important;
-          }
-          html, body {
-            width: ${paperWidth}mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #fff !important;
-          }
-          #printable-pos-receipt {
-            width: ${paperWidth}mm !important;
-            max-width: ${paperWidth}mm !important;
-            margin: 0 !important;
-            padding: 4mm ${paperSize === '58mm' ? '2.5mm' : '4mm'} !important;
-            box-sizing: border-box !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-        }
-      `;
-    }
+      }
+    `;
 
     window.print();
     setPrintStatus('Receipt sent to printer!');
   };
 
-  // Trigger print via dedicated hidden thermal iframe with dynamic auto-sizing
+  // Print the receipt on A4 using a hidden iframe
   const executePrint = () => {
     setPrintStatus('Sending to printer...');
     let iframe = document.getElementById('pos-thermal-print-frame') as HTMLIFrameElement;
@@ -196,16 +153,11 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       document.body.appendChild(iframe);
     }
 
-    const paperWidth = paperSize === '58mm' ? 58 : (paperSize === 'letter' ? 215.9 : 80);
-    const receiptEl = document.getElementById('printable-pos-receipt');
-    const scrollHeightPx = receiptEl ? receiptEl.scrollHeight : 520;
-    const initialHeightMm = Math.max(90, Math.ceil(scrollHeightPx * 0.264583) + 4);
-
     const itemsHtml = receipt.items.map(it => {
       const unitP = calculateItemPrice(it);
       const lineTotal = unitP * it.qty;
       const addonsHtml = it.addons && it.addons.length > 0
-        ? it.addons.map(a => `<div style="font-size: ${paperSize === '58mm' ? '9px' : '10px'}; color: #444; padding-left: 6px;">+ ${a} (+₱${getAddonPrice(a).toFixed(2)})</div>`).join('')
+        ? it.addons.map(a => `<div style="font-size: 10px; color: #444; padding-left: 6px;">+ ${a} (+₱${getAddonPrice(a).toFixed(2)})</div>`).join('')
         : '';
       return `
         <div style="margin-bottom: 4px;">
@@ -224,10 +176,10 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 <head>
   <meta charset="utf-8">
   <title>Receipt ${receipt.ref}</title>
-  <style id="dynamic-page-style">
+  <style>
     @page {
-      size: ${paperSize === 'letter' ? 'letter portrait' : `${paperWidth}mm ${initialHeightMm}mm`};
-      margin: 0mm;
+      size: A4 portrait;
+      margin: 12mm;
     }
     * {
       box-sizing: border-box;
@@ -238,15 +190,15 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       margin: 0 !important;
       padding: 0 !important;
       background: #ffffff !important;
-      width: ${paperSize === 'letter' ? '100%' : `${paperWidth}mm`} !important;
+      width: 100% !important;
     }
     #receipt-container {
-      width: ${paperSize === 'letter' ? '80mm' : `${paperWidth}mm`};
+      width: 100%;
       max-width: 100%;
       margin: 0 auto;
-      padding: 3mm ${paperSize === '58mm' ? '2.5mm' : '4mm'} 6mm ${paperSize === '58mm' ? '2.5mm' : '4mm'};
+      padding: 3mm 4mm 6mm 4mm;
       font-family: 'Courier New', Courier, monospace;
-      font-size: ${paperSize === '58mm' ? '10px' : '11.5px'};
+      font-size: 11.5px;
       line-height: 1.28;
       color: #000000;
       background: #ffffff;
@@ -262,12 +214,11 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 </head>
 <body>
   <div id="receipt-container">
-    <div class="text-center bold" style="font-size: ${paperSize === '58mm' ? '12px' : '13.5px'}; margin-bottom: 2px;">${storeName}</div>
-    <div class="text-center" style="font-size: ${paperSize === '58mm' ? '9.5px' : '11px'};">Handcrafted Drinks & Fresh Brews</div>
-    <div class="text-center" style="font-size: ${paperSize === '58mm' ? '9px' : '10px'};">${storeAddress}</div>
-    <div class="text-center" style="font-size: ${paperSize === '58mm' ? '9px' : '10px'};">Tel: ${storePhone}</div>
-    <div class="text-center" style="font-size: ${paperSize === '58mm' ? '9px' : '10px'};">VAT Reg TIN: 432-871-902-00000</div>
-    <div class="text-center" style="font-size: ${paperSize === '58mm' ? '9px' : '10px'};">POS Terminal: POS-01 (Taytay)</div>
+    <div class="text-center bold" style="font-size: 13.5px; margin-bottom: 2px;">${storeName}</div>
+    <div class="text-center" style="font-size: 11px;">Handcrafted Drinks & Fresh Brews</div>
+    <div class="text-center" style="font-size: 10px;">${storeAddress}</div>
+    <div class="text-center" style="font-size: 10px;">Tel: ${storePhone}</div>
+    <div class="text-center" style="font-size: 10px;">POS Terminal: POS-01 (Taytay)</div>
 
     <div class="divider-solid"></div>
 
@@ -288,13 +239,10 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
     <div class="divider-dash"></div>
 
     <div class="row"><span>Subtotal:</span><span>₱${receipt.totalAmount.toFixed(2)}</span></div>
-    <div class="row"><span>Vatable Sales (12%):</span><span>₱${vatableSales.toFixed(2)}</span></div>
-    <div class="row"><span>12% EVAT:</span><span>₱${vatAmount.toFixed(2)}</span></div>
-    <div class="row"><span>VAT-Exempt:</span><span>₱0.00</span></div>
 
     <div class="divider-solid"></div>
 
-    <div class="row bold" style="font-size: ${paperSize === '58mm' ? '12px' : '13.5px'};">
+    <div class="row bold" style="font-size: 13.5px;">
       <span>TOTAL AMOUNT:</span>
       <span>₱${receipt.totalAmount.toFixed(2)}</span>
     </div>
@@ -309,7 +257,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 
     <!-- Barcode Representation -->
     <div class="barcode-box">
-      <svg width="${paperSize === '58mm' ? '140' : '180'}" height="32" viewBox="0 0 180 36" style="display: block; margin: 0 auto;">
+      <svg width="180" height="32" viewBox="0 0 180 36" style="display: block; margin: 0 auto;">
         ${generateBarcodeLines(receipt.ref)}
       </svg>
       <div style="font-size: 9.5px; letter-spacing: 1.5px; margin-top: 2px;">*${receipt.ref}*</div>
@@ -334,17 +282,6 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
 
       setTimeout(() => {
         try {
-          const doc = iframe.contentWindow?.document || iframe.contentDocument;
-          const container = doc?.getElementById('receipt-container');
-          if (container && paperSize !== 'letter') {
-            const actualPx = container.scrollHeight || container.offsetHeight;
-            const actualMm = Math.max(85, Math.ceil(actualPx * 0.264583) + 4);
-            const styleEl = doc?.getElementById('dynamic-page-style');
-            if (styleEl) {
-              styleEl.innerHTML = `@page { size: ${paperWidth}mm ${actualMm}mm; margin: 0mm; } html, body { margin: 0; padding: 0; width: ${paperWidth}mm; }`;
-            }
-          }
-
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
           setPrintStatus('Receipt sent to printer!');
@@ -365,7 +302,7 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
       }, 350);
       return () => clearTimeout(timer);
     }
-  }, [autoPrint, paperSize]);
+  }, [autoPrint]);
 
   const handleDownloadTxt = () => {
     const content = generatePlainTextReceipt();
@@ -536,77 +473,8 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
           </button>
         </div>
 
-        {/* Paper Size & Auto-Fit Options Bar */}
-        <div style={{
-          padding: '0.45rem 1rem',
-          background: '#ffffff',
-          borderBottom: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.4rem'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#475569', fontWeight: 700 }}>
-            <span>Paper Format:</span>
-            <span style={{ color: '#ea580c', background: '#fff7ed', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fed7aa', fontSize: '0.67rem' }}>
-              Auto-Sized (No Excess Margin)
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            <button
-              type="button"
-              onClick={() => setPaperSize('80mm')}
-              style={{
-                padding: '0.24rem 0.55rem',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: paperSize === '80mm' ? '1.5px solid #ea580c' : '1px solid #cbd5e1',
-                background: paperSize === '80mm' ? '#ea580c' : '#ffffff',
-                color: paperSize === '80mm' ? '#ffffff' : '#475569',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              🧾 80mm Roll (Auto-Fit)
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaperSize('58mm')}
-              style={{
-                padding: '0.24rem 0.55rem',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: paperSize === '58mm' ? '1.5px solid #ea580c' : '1px solid #cbd5e1',
-                background: paperSize === '58mm' ? '#ea580c' : '#ffffff',
-                color: paperSize === '58mm' ? '#ffffff' : '#475569',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              🧾 58mm Roll
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaperSize('letter')}
-              style={{
-                padding: '0.24rem 0.55rem',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                borderRadius: '6px',
-                border: paperSize === 'letter' ? '1.5px solid #ea580c' : '1px solid #cbd5e1',
-                background: paperSize === 'letter' ? '#ea580c' : '#ffffff',
-                color: paperSize === 'letter' ? '#ffffff' : '#475569',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              📄 Letter / A4
-            </button>
-          </div>
+        <div style={{ padding: '0.45rem 1rem', borderBottom: '1px solid #e2e8f0', fontSize: '0.75rem', color: '#475569' }}>
+          Paper format <strong>A4</strong>
         </div>
 
         {/* Realistic Thermal Paper Container */}
@@ -622,11 +490,11 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
             style={{
               background: '#ffffff',
               width: '100%',
-              maxWidth: paperSize === '58mm' ? '260px' : (paperSize === 'letter' ? '380px' : '330px'),
+              maxWidth: '380px',
               padding: '1.25rem 1rem',
               fontFamily: "'Courier New', Courier, Monaco, monospace",
               color: '#0f172a',
-              fontSize: paperSize === '58mm' ? '0.72rem' : '0.8rem',
+              fontSize: '0.8rem',
               lineHeight: 1.4,
               boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
               borderRadius: '4px',
@@ -655,7 +523,6 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Handcrafted Drinks & Fresh Brews</div>
               <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '2px' }}>{storeAddress}</div>
               <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Tel: {storePhone}</div>
-              <div style={{ fontSize: '0.68rem', color: '#64748b' }}>VAT Reg TIN: 432-871-902-00000</div>
               <div style={{ fontSize: '0.68rem', color: '#64748b' }}>MIN: 2409240832101 | POS Terminal #01</div>
             </div>
 
@@ -728,18 +595,6 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: '#64748b' }}>Subtotal:</span>
                 <span>₱{receipt.totalAmount.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>Vatable Sales (12%):</span>
-                <span>₱{vatableSales.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>12% EVAT:</span>
-                <span>₱{vatAmount.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748b' }}>VAT-Exempt Sales:</span>
-                <span>₱0.00</span>
               </div>
             </div>
 
