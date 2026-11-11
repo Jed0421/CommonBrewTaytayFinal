@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Customer, OnlineOrder, StoreInfo, OrderItem, User } from '../types';
+import { Product, Customer, OnlineOrder, StoreInfo, OrderItem, User, cashPaymentByOrderType, type OrderType, type OnlinePaymentMethod } from '../types';
 import { CommonBrewLogo } from './CommonBrewLogo';
 import { CustomerBotDrawer } from './CustomerBotDrawer';
 import { AccessPortalModal } from './AccessPortalModal';
@@ -160,13 +160,13 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
   // Checkout Modal
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [orderType, setOrderType] = useState<'Pickup' | 'Delivery' | 'DineIn'>('Delivery');
+  const [orderType, setOrderType] = useState<OrderType>('Delivery');
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
   const [custEmail, setCustEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [tableNumber, setTableNumber] = useState('1');
-  const [paymentMethod, setPaymentMethod] = useState<'GCash' | 'Cash on Pickup' | 'Cash on Delivery'>('GCash');
+  const [paymentMethod, setPaymentMethod] = useState<OnlinePaymentMethod>('GCash');
   const [gcashReceiptImage, setGcashReceiptImage] = useState<string>('');
   const [gcashReceiptFileName, setGcashReceiptFileName] = useState<string>('');
   const [gcashReceiptFileSize, setGcashReceiptFileSize] = useState<string>('');
@@ -757,7 +757,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       isUpsize,
       addons: selectedAddons,
       sugarLevel: selectedProduct.productType === 'Drink' ? sugarLevel : undefined,
-      iceLevel: selectedProduct.productType === 'Drink' ? iceLevel : undefined,
+      iceLevel: selectedProduct.productType === 'Drink' && selectedProduct.categoryId !== 'cat-hotcoffee' ? iceLevel : undefined,
       specialInstructions,
       qty: modalQty
     };
@@ -1613,21 +1613,23 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '1.25rem' }}>
-                    <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Ice Level</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {['No Ice', 'Less Ice', 'Regular Ice', 'Extra Ice'].map(lvl => (
-                        <button
-                          key={lvl}
-                          type="button"
-                          onClick={() => setIceLevel(lvl)}
-                          style={{ flex: 1, padding: '0.4rem', borderRadius: '8px', border: '1px solid #d1d5db', background: iceLevel === lvl ? '#3d2314' : '#fff', color: iceLevel === lvl ? '#fff' : '#374151', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-                        >
-                          {lvl}
-                        </button>
-                      ))}
+                  {selectedProduct.categoryId !== 'cat-hotcoffee' && (
+                    <div style={{ marginTop: '1.25rem' }}>
+                      <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Ice Level</label>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {['No Ice', 'Less Ice', 'Regular Ice', 'Extra Ice'].map(lvl => (
+                          <button
+                            key={lvl}
+                            type="button"
+                            onClick={() => setIceLevel(lvl)}
+                            style={{ flex: 1, padding: '0.4rem', borderRadius: '8px', border: '1px solid #d1d5db', background: iceLevel === lvl ? '#3d2314' : '#fff', color: iceLevel === lvl ? '#fff' : '#374151', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
+                          >
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </>
               )}
 
@@ -1781,15 +1783,18 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Select Order Type</label>
                 <div className="sf-order-types">
-                  {[
+                  {([
                     { type: 'Delivery', label: 'Delivery (+₱45)', icon: <Bike size={16} /> },
                     { type: 'Pickup', label: 'Store Pickup', icon: <Store size={16} /> },
                     { type: 'DineIn', label: 'Dine-In Table', icon: <Coffee size={16} /> }
-                  ].map(t => (
+                  ] as const).map(t => (
                     <button
                       key={t.type}
                       type="button"
-                      onClick={() => setOrderType(t.type as any)}
+                      onClick={() => {
+                        setOrderType(t.type);
+                        setPaymentMethod(previous => previous === 'GCash' ? previous : cashPaymentByOrderType[t.type]);
+                      }}
                       style={{ flex: 1, padding: '0.6rem 0.4rem', borderRadius: '10px', border: '1px solid #d1d5db', background: orderType === t.type ? '#3d2314' : '#fff', color: orderType === t.type ? '#fff' : '#374151', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                     >
                       {t.icon}
@@ -1872,14 +1877,13 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 <label style={{ display: 'block', fontWeight: 700, fontSize: '0.85rem', color: '#374151', marginBottom: '0.5rem' }}>Payment Method</label>
                 <div className="sf-two-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                   {[
-                    { pm: 'GCash', icon: <Smartphone size={14} /> },
-                    { pm: 'Cash on Pickup', icon: <Banknote size={14} /> },
-                    { pm: 'Cash on Delivery', icon: <Banknote size={14} /> }
+                    { pm: 'GCash' as const, icon: <Smartphone size={14} /> },
+                    { pm: cashPaymentByOrderType[orderType], icon: <Banknote size={14} /> }
                   ].map(item => (
                     <button
                       key={item.pm}
                       type="button"
-                      onClick={() => setPaymentMethod(item.pm as any)}
+                      onClick={() => setPaymentMethod(item.pm)}
                       style={{ padding: '0.55rem', borderRadius: '8px', border: paymentMethod === item.pm ? '1px solid #FF5E00' : '1px solid var(--border)', background: paymentMethod === item.pm ? '#FF5E00' : 'var(--surface)', color: paymentMethod === item.pm ? '#ffffff' : 'var(--text)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem' }}
                     >
                       {item.icon}

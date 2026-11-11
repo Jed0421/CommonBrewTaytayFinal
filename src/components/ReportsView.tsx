@@ -6,7 +6,7 @@ import { useRealtimeSync } from '../lib/realtimeSync';
 type PaymentFilter = 'ALL' | 'CASH' | 'ONLINE';
 type OrderTypeFilter = 'ALL' | 'IN_STORE' | 'ONLINE_ORDER';
 
-// Cash, Cash on Pickup and Cash on Delivery are cash; GCash / card / e-wallets are online payments
+// Cash methods share the same prefix, including cash paid for dine-in orders.
 const isCashPayment = (method?: string) => (method || 'Cash').trim().toLowerCase().startsWith('cash');
 
 // Online orders are logged with a CB-ONL-xxxx reference when the order is completed
@@ -427,7 +427,7 @@ export const ReportsView: React.FC = () => {
       {/* Cash vs Online Payment Totals (click a card to filter by it) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {([
-          { key: 'CASH' as const, title: 'Cash Payments', sub: 'Cash, Cash on Pickup & Cash on Delivery', icon: 'fa-money-bill-1', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', total: totalCashSales, count: cashTxns.length },
+          { key: 'CASH' as const, title: 'Cash Payments', sub: 'Cash at POS, pickup, delivery & dine-in', icon: 'fa-money-bill-1', color: '#16a34a', bg: '#f0fdf4', border: '#86efac', total: totalCashSales, count: cashTxns.length },
           { key: 'ONLINE' as const, title: 'Online Payments', sub: 'GCash & other e-wallets', icon: 'fa-mobile-screen-button', color: '#2563eb', bg: '#eff6ff', border: '#93c5fd', total: totalOnlinePaySales, count: onlinePayTxns.length }
         ]).map(card => {
           const active = paymentFilter === card.key;

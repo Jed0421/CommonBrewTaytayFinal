@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { cashPaymentByOrderType, type OnlinePaymentMethod, type OrderType } from './src/types.ts';
 import { startCriticalStockEmailWorker } from './src/lib/criticalStockEmail.ts';
 import { commonBrewEmail, emailEscape, emailMoney, emailParagraph } from './src/lib/commonBrewEmail.ts';
 import { sendRealEmail } from './src/lib/sendEmail.ts';
@@ -171,7 +172,7 @@ interface OnlineOrderRecord {
   orderType: 'Pickup' | 'Delivery' | 'DineIn';
   deliveryAddress?: string;
   tableNumber?: string;
-  paymentMethod: 'GCash' | 'Cash on Pickup' | 'Cash on Delivery' | 'Card';
+  paymentMethod: OnlinePaymentMethod | 'Card';
   gcashAccount?: string;
   gcashReferenceNumber?: string;
   gcashReceiptImage?: string;
@@ -1101,11 +1102,13 @@ function commonBrewOrderEmail(order: OnlineOrderRecord): string {
   const rows = order.items.map(item => {
     const details: string[] = [];
 
-    if (item.sugarLevel || item.iceLevel) {
-      details.push(
-        `Sugar: ${emailEscape(item.sugarLevel || 'Regular')} · Ice: ${emailEscape(item.iceLevel || 'Regular')}`
-      );
-    }
+    const isHotCoffee = products.some(product => product.id === item.productId && product.categoryId === 'cat-hotcoffee');
+    const iceLevel = isHotCoffee ? undefined : item.iceLevel;
+    const drinkOptions = [
+      item.sugarLevel && `Sugar: ${emailEscape(item.sugarLevel)}`,
+      iceLevel && `Ice: ${emailEscape(iceLevel)}`
+    ].filter(Boolean);
+    if (drinkOptions.length) details.push(drinkOptions.join(' · '));
 
     if (item.addons?.length) {
       details.push(`Add-ons: ${emailEscape(item.addons.join(', '))}`);
@@ -2006,6 +2009,13 @@ app.post('/api/online-orders/create', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Cart is empty.' });
   }
 
+  if (typeof orderType !== 'string' || !Object.prototype.hasOwnProperty.call(cashPaymentByOrderType, orderType)) {
+    return res.status(400).json({ success: false, message: 'Select a valid order type.' });
+  }
+  if (paymentMethod !== 'GCash' && paymentMethod !== cashPaymentByOrderType[orderType as OrderType]) {
+    return res.status(400).json({ success: false, message: 'Select a payment method available for this order type.' });
+  }
+
   // Enforce GCash Payment Receipt requirement for GCash payments
   if (paymentMethod === 'GCash') {
     const cleanGcashReceipt = typeof gcashReceiptImage === 'string' ? gcashReceiptImage.trim() : '';
@@ -2043,10 +2053,10 @@ app.post('/api/online-orders/create', async (req, res) => {
     customerName: customerName || sessionCustomer?.fullName || 'Guest Customer',
     customerPhone: customerPhone || sessionCustomer?.phone || 'N/A',
     customerEmail: customerEmail || sessionCustomer?.email || '',
-    orderType: orderType || 'Pickup',
+    orderType: orderType as OrderType,
     deliveryAddress: orderType === 'Delivery' ? (deliveryAddress || sessionCustomer?.address || '') : undefined,
     tableNumber: orderType === 'DineIn' ? tableNumber : undefined,
-    paymentMethod: paymentMethod || 'GCash',
+    paymentMethod,
     gcashAccount: paymentMethod === 'GCash' ? '09474960778' : undefined,
     gcashReferenceNumber: paymentMethod === 'GCash' ? (gcashReferenceNumber || undefined) : undefined,
     gcashReceiptImage: paymentMethod === 'GCash' ? gcashReceiptImage.trim() : undefined,
@@ -2058,7 +2068,7 @@ app.post('/api/online-orders/create', async (req, res) => {
       subtotal: Number(i.unitPrice) * Number(i.quantity),
       isUpsize: Boolean(i.isUpsize),
       sugarLevel: i.sugarLevel,
-      iceLevel: i.iceLevel,
+      iceLevel: products.find(product => product.id === i.productId)?.categoryId === 'cat-hotcoffee' ? undefined : i.iceLevel,
       addons: Array.isArray(i.addons) ? i.addons : [],
       specialInstructions: i.specialInstructions
     })),
@@ -3537,7 +3547,7 @@ app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
 - Contact Number: +63 917 123 4567 | +63 947 496 0778
 - Official Email: commonbrewtaytay@gmail.com
 - Service Options: Online Ordering for Delivery in Taytay (₱45 delivery fee), Store Pickup (Free), and Dine-In
-- Payment Methods Accepted: GCash (Official GCash Account: 09474960778 - CommonBrew Taytay), Cash on Pickup, Cash on Delivery
+- Payment Methods Accepted: GCash (Official GCash Account: 09474960778 - CommonBrew Taytay), Cash on Pickup, Cash on Delivery, Cash on Store
 `;
 
     // 6. Brewing & Coffee Tips Grounding
@@ -3623,7 +3633,7 @@ CommonBrew Taytay cafe, artisan coffee craftsmanship, and customer online orderi
 3. **Loyalty Points Status**: Points balance, earning rate (5 pts per ₱50 spent), and ₱110 reward redemption (100 pts = ₱110 discount, extra points remain in balance).
 4. **Best Sellers & Menu**: Top 10 drinks and pastries, pricing, customizations, add-ons, and availability.
 5. **Brewing & Coffee Tips**: Coffee beans (Arabica & Robusta), brewing methods (pour-over, cold brew, French press, espresso), roast profiles, caffeine content, and food pairings.
-6. **General Store Inquiries**: Operating hours (7:00 AM – 10:00 PM Daily), address (143 Manila East Road, Brgy. San Juan, Taytay, Rizal near Club Manila East), contact numbers, and payment options (GCash, Cash on Pickup, Cash on Delivery).
+6. **General Store Inquiries**: Operating hours (7:00 AM – 10:00 PM Daily), address (143 Manila East Road, Brgy. San Juan, Taytay, Rizal near Club Manila East), contact numbers, and payment options (GCash, Cash on Pickup, Cash on Delivery, Cash on Store).
 
 MANDATORY USER PROMPT POLICY (CHATGPT-STYLE):
 - CommonBot MUST respond with a helpful, conversational message to ALL prompts in the chatbot.
@@ -3690,7 +3700,7 @@ ${generalInquiriesSummary}`;
     } else if (scopeEvaluation.category === 'brewing_tips') {
       dynamicFallback = `### ☕ Barista Brewing & Coffee Tips\n\n- **Pour-Over (V60)**: Use a 1:15 ratio, medium grind, and 92°C water for crisp floral and citrus notes.\n- **Cold Brew**: 1:8 coarse coffee-to-water ratio steeped 16-18 hours in the fridge for a smooth, chocolatey, low-acid cup.\n- **Espresso**: 1:2 brew ratio extracted in 25-30 seconds.\n- **Pastry Pairing**: Try our **Iced Spanish Latte** with the warm **Belgian Choco Muffin**!`;
     } else if (scopeEvaluation.category === 'general_inquiries' || scopeEvaluation.category === 'greeting') {
-      dynamicFallback = `### ℹ️ Welcome to CommonBrew Taytay! ☕\n\n- **Operating Hours**: 7:00 AM – 10:00 PM Daily (Monday to Sunday)\n- **Location**: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)\n- **Contact Phone**: +63 917 123 4567 | +63 947 496 0778\n- **Email**: commonbrewtaytay@gmail.com\n- **Payment Options**: GCash, Cash on Pickup, Cash on Delivery (COD)\n- **Delivery**: Flat ₱45 delivery fee within Taytay!`;
+      dynamicFallback = `### ℹ️ Welcome to CommonBrew Taytay! ☕\n\n- **Operating Hours**: 7:00 AM – 10:00 PM Daily (Monday to Sunday)\n- **Location**: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)\n- **Contact Phone**: +63 917 123 4567 | +63 947 496 0778\n- **Email**: commonbrewtaytay@gmail.com\n- **Payment Options**: GCash, Cash on Pickup, Cash on Delivery, Cash on Store (COD)\n- **Delivery**: Flat ₱45 delivery fee within Taytay!`;
     }
 
     const reply = await generateAIChatResponse(systemPrompt, convoHistory, question, dynamicFallback);

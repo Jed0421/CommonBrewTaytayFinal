@@ -138,6 +138,14 @@ export interface OnlineOrderItem {
 export type OnlineOrderStatus = 'Pending' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
 export type OrderType = 'Pickup' | 'Delivery' | 'DineIn';
 
+export const cashPaymentByOrderType = {
+  Delivery: 'Cash on Delivery',
+  Pickup: 'Cash on Pickup',
+  DineIn: 'Cash on Store'
+} as const satisfies Record<OrderType, string>;
+
+export type OnlinePaymentMethod = 'GCash' | (typeof cashPaymentByOrderType)[OrderType];
+
 export interface OnlineOrder {
   id: string;
   orderRef: string;
@@ -152,7 +160,7 @@ export interface OnlineOrder {
   orderType: OrderType;
   deliveryAddress?: string;
   tableNumber?: string;
-  paymentMethod: 'GCash' | 'Cash on Pickup' | 'Cash on Delivery';
+  paymentMethod: OnlinePaymentMethod;
   gcashAccount?: string;
   gcashReferenceNumber?: string;
   gcashReceiptImage?: string;
