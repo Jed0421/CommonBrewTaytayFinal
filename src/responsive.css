@@ -180,3 +180,90 @@ body:has(.responsive-overlay) { overflow: hidden; }
   .sf-header { position: relative !important; }
   .sf-dialog > :first-child { max-height: 90px; }
 }
+
+/* GCash checkout */
+.sf-gcash-panel {
+  display: grid;
+  gap: .85rem;
+  min-width: 0;
+  margin-bottom: 1.25rem;
+  padding: clamp(.75rem, 3vw, 1.15rem);
+  border-radius: 16px;
+  background: #0647a4;
+  color: #fff;
+}
+.sf-gcash-header h3 {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+  color: inherit;
+  font-size: 1.1rem;
+}
+.sf-gcash-header p, .sf-gcash-receipt-note {
+  margin: .3rem 0 0;
+  font-size: .83rem;
+  line-height: 1.5;
+  color: #e0efff;
+}
+.sf-gcash-details, .sf-gcash-qr {
+  min-width: 0;
+  padding: .8rem;
+  border-radius: 12px;
+  background: #fff;
+  color: #172b4d;
+}
+.sf-gcash-copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .45rem .75rem;
+}
+.sf-gcash-copy-row + .sf-gcash-copy-row {
+  margin-top: .65rem;
+  padding-top: .65rem;
+  border-top: 1px solid #dce7f5;
+}
+.sf-gcash-copy-row span, .sf-gcash-copy-row strong { display: block; overflow-wrap: anywhere; }
+.sf-gcash-copy-row span { font-size: .76rem; color: #40587a; }
+.sf-gcash-copy-row strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.sf-gcash-copy-row button, .sf-gcash-qr a, .sf-gcash-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  min-height: 44px;
+  padding: .45rem .65rem;
+  border: 1px solid #bfd6f8;
+  border-radius: 8px;
+  background: #edf5ff;
+  color: #0647a4;
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sf-gcash-qr { display: grid; justify-items: center; gap: .45rem; text-align: center; }
+.sf-gcash-qr button {
+  width: min(100%, 210px);
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid #dce7f5;
+  border-radius: 8px;
+  background: #fff;
+  cursor: zoom-in;
+}
+.sf-gcash-qr img, .sf-gcash-qr-expanded img { display: block; width: 100%; height: auto; }
+.sf-gcash-qr p { margin: 0; max-width: 32ch; color: #40587a; font-size: .76rem; line-height: 1.5; }
+.sf-gcash-open { width: 100%; background: #fff; }
+.sf-gcash-upload-heading, .sf-gcash-attachment, .sf-gcash-attachment-actions { flex-wrap: wrap; }
+.sf-gcash-upload-heading { gap: .35rem; }
+.sf-gcash-attachment > :first-child { flex-basis: 150px !important; }
+.sf-gcash-attachment-actions { max-width: 100%; }
+.sf-gcash-qr-expanded { width: min(100%, 286px); box-sizing: border-box; }
+@media (max-width: 420px) {
+  .sf-gcash-copy-row button { width: 100%; }
+  .sf-gcash-attachment-actions { width: 100%; }
+  .sf-gcash-attachment-actions button { flex: 1 1 auto; }
+}

@@ -1893,239 +1893,65 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 </div>
               </div>
 
-              {/* GCash Direct Payment Gateway Card */}
               {paymentMethod === 'GCash' && (
-                <div style={{
-                  background: 'linear-gradient(135deg, #0052cc 0%, #007dfe 100%)',
-                  borderRadius: '16px',
-                  padding: '1.25rem',
-                  color: '#ffffff',
-                  marginBottom: '1.25rem',
-                  boxShadow: '0 10px 28px rgba(0, 125, 254, 0.28)',
-                  border: '1px solid rgba(255,255,255,0.22)'
-                }}>
-                  {/* GCash Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.9rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ background: '#ffffff', color: '#007dfe', borderRadius: '8px', padding: '4px 9px', fontWeight: 900, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 5px rgba(0,0,0,0.12)' }}>
-                        <Smartphone size={16} />
-                        <span>GCash</span>
-                      </div>
-                      <span style={{ fontSize: '0.82rem', color: '#e0f2fe', fontWeight: 700 }}>Scan QR or Express Send</span>
-                    </div>
-                    <span style={{ fontSize: '0.7rem', background: 'rgba(255,255,255,0.22)', padding: '3px 9px', borderRadius: '12px', fontWeight: 800, letterSpacing: '0.02em' }}>
-                      Official CommonBrew QR
-                    </span>
-                  </div>
+                <section className="sf-gcash-panel" aria-labelledby="gcash-payment-heading">
+                  <header className="sf-gcash-header">
+                    <h3 id="gcash-payment-heading"><Smartphone size={18} aria-hidden="true" /> Pay with GCash</h3>
+                    <p>Send the exact amount to CommonBrew Taytay, then attach your receipt.</p>
+                  </header>
 
-                  {/* AUTO-SHOWN GCASH QR CODE CARD */}
-                  <div style={{
-                    background: '#ffffff',
-                    borderRadius: '14px',
-                    padding: '1rem',
-                    color: '#1f2937',
-                    textAlign: 'center',
-                    marginBottom: '1rem',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.18)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ background: '#007dfe', color: '#fff', fontWeight: 900, fontSize: '0.75rem', padding: '2px 8px', borderRadius: '6px' }}>
-                        GCash QR
-                      </span>
-                      <span style={{ fontWeight: 900, fontSize: '0.88rem', color: '#0052cc' }}>
-                        CommonBrew Taytay
-                      </span>
-                    </div>
-
-                    {/* QR Code Image - Square QR Only */}
-                    <div 
-                      style={{ cursor: 'pointer', position: 'relative', display: 'inline-block' }}
-                      onClick={() => setIsQrModalOpen(true)}
-                      title="Click to view full size QR"
-                    >
-                      <div style={{
-                        background: '#ffffff',
-                        padding: '8px',
-                        borderRadius: '12px',
-                        border: '1.5px solid #e2e8f0',
-                        boxShadow: '0 4px 14px rgba(0,0,0,0.08)',
-                        display: 'inline-block'
-                      }}>
-                        <img
-                          src={gcashQrImg}
-                          alt="CommonBrew GCash Official QR Code"
-                          referrerPolicy="no-referrer"
-                          style={{
-                            width: '210px',
-                            height: '210px',
-                            aspectRatio: '1 / 1',
-                            objectFit: 'contain',
-                            display: 'block',
-                            margin: '0 auto',
-                            borderRadius: '6px'
-                          }}
-                        />
-                      </div>
-                      <div style={{
-                        marginTop: '6px',
-                        fontSize: '0.72rem',
-                        color: '#0052cc',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '4px'
-                      }}>
-                        <QrCode size={13} />
-                        <span>Tap QR image to enlarge</span>
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: '8px', padding: '0.5rem 0.75rem', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                        <span style={{ color: '#64748b' }}>Account Name:</span>
-                        <strong style={{ color: '#0052cc', fontWeight: 800 }}>JE*****H G.</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
-                        <span style={{ color: '#64748b' }}>Mobile Number:</span>
-                        <strong style={{ color: '#1e293b', fontWeight: 800 }}>09474960778</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#64748b' }}>Exact Amount:</span>
-                        <strong style={{ color: '#059669', fontSize: '0.9rem', fontWeight: 900 }}>₱{cartTotal}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Recipient Account & Amount Quick Copy */}
-                  <div style={{ background: 'rgba(0, 32, 77, 0.45)', backdropFilter: 'blur(8px)', borderRadius: '12px', padding: '0.85rem', marginBottom: '0.85rem', border: '1px solid rgba(255,255,255,0.14)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <div className="sf-gcash-details">
+                    <div className="sf-gcash-copy-row">
                       <div>
-                        <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', color: '#93c5fd', fontWeight: 700, letterSpacing: '0.04em', display: 'block' }}>
-                          GCash Number
-                        </span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 900, letterSpacing: '0.04em', color: '#ffffff' }}>
-                          09474960778
-                        </span>
+                        <span>Amount to send</span>
+                        <strong>₱{cartTotal.toFixed(2)}</strong>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (navigator?.clipboard?.writeText) {
-                            navigator.clipboard.writeText('09474960778');
-                            setIsGcashCopied(true);
-                            setTimeout(() => setIsGcashCopied(false), 3000);
-                          }
-                        }}
-                        style={{
-                          background: isGcashCopied ? '#10b981' : '#ffffff',
-                          color: isGcashCopied ? '#ffffff' : '#007dfe',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '0.45rem 0.75rem',
-                          fontWeight: 800,
-                          fontSize: '0.78rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
-                        }}
-                      >
-                        {isGcashCopied ? <Check size={14} /> : <Copy size={14} />}
-                        <span>{isGcashCopied ? 'Copied! ✓' : 'Copy Number'}</span>
+                      <button type="button" onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(cartTotal.toFixed(2));
+                          setIsAmountCopied(true);
+                          setTimeout(() => setIsAmountCopied(false), 3000);
+                        } catch {
+                          setIsAmountCopied(false);
+                        }
+                      }}>
+                        <Copy size={14} aria-hidden="true" /> {isAmountCopied ? 'Copied' : 'Copy amount'}
                       </button>
                     </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div className="sf-gcash-copy-row">
                       <div>
-                        <span style={{ fontSize: '0.72rem', color: '#93c5fd', fontWeight: 600 }}>Amount to Send:</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 900, color: '#fef08a', marginLeft: '6px' }}>
-                          ₱{cartTotal}
-                        </span>
+                        <span>GCash number · JE*****H G.</span>
+                        <strong>09474960778</strong>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (navigator?.clipboard?.writeText) {
-                            navigator.clipboard.writeText(String(cartTotal));
-                            setIsAmountCopied(true);
-                            setTimeout(() => setIsAmountCopied(false), 3000);
-                          }
-                        }}
-                        style={{
-                          background: isAmountCopied ? '#10b981' : 'rgba(255,255,255,0.15)',
-                          color: '#ffffff',
-                          border: '1px solid rgba(255,255,255,0.3)',
-                          borderRadius: '6px',
-                          padding: '2px 8px',
-                          fontWeight: 700,
-                          fontSize: '0.72rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}
-                      >
-                        {isAmountCopied ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{isAmountCopied ? 'Copied!' : 'Copy Amount'}</span>
+                      <button type="button" onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText('09474960778');
+                          setIsGcashCopied(true);
+                          setTimeout(() => setIsGcashCopied(false), 3000);
+                        } catch {
+                          setIsGcashCopied(false);
+                        }
+                      }}>
+                        <Copy size={14} aria-hidden="true" /> {isGcashCopied ? 'Copied' : 'Copy number'}
                       </button>
                     </div>
                   </div>
 
-                  {/* Open / Proceed to GCash App Button */}
-                  <div style={{ marginBottom: '0.85rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenGCashApp(cartTotal)}
-                      style={{
-                        width: '100%',
-                        background: '#ffffff',
-                        color: '#0052cc',
-                        border: 'none',
-                        borderRadius: '10px',
-                        padding: '0.75rem 1rem',
-                        fontWeight: 900,
-                        fontSize: '0.88rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.45rem',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}
-                    >
-                      <Smartphone size={17} style={{ color: '#007dfe' }} />
-                      <span>Proceed to GCash App</span>
-                      <ExternalLink size={13} style={{ opacity: 0.7 }} />
+                  <div className="sf-gcash-qr">
+                    <button type="button" onClick={() => setIsQrModalOpen(true)} aria-label="Enlarge CommonBrew GCash QR code">
+                      <img src={gcashQrImg} alt="CommonBrew Taytay GCash QR code" />
                     </button>
+                    <a href={gcashQrImg} download="CommonBrew-GCash-QR.png">
+                      <QrCode size={16} aria-hidden="true" /> Save QR image
+                    </a>
+                    <p>On the same phone, save the QR image or copy the number to pay in GCash.</p>
                   </div>
 
-                  {/* Step Directions */}
-                  <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '0.85rem', fontSize: '0.78rem', lineHeight: '1.5' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#fef08a', fontWeight: 900, marginBottom: '6px', fontSize: '0.82rem' }}>
-                      <Receipt size={16} />
-                      <span>How to Pay & Upload GCash Receipt:</span>
-                    </div>
-                    <ol style={{ margin: 0, paddingLeft: '1.25rem', color: '#f0f9ff', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <li>
-                        <strong>Step 1:</strong> Scan the <strong>QR code above</strong> or tap <strong>Proceed to GCash App</strong>, then send exact amount <strong>₱{cartTotal}</strong> to <strong>09474960778</strong> (JE*****H G.).
-                      </li>
-                      <li>
-                        <strong>Step 2:</strong> In the GCash app, after payment succeeds, tap <strong>"Save / Download Receipt"</strong> (or take a screenshot of your transaction receipt).
-                      </li>
-                      <li>
-                        <strong>Step 3:</strong> <strong>Upload that downloaded receipt below</strong> so our baristas can verify your payment and start brewing!
-                      </li>
-                    </ol>
+                  <button className="sf-gcash-open" type="button" onClick={() => handleOpenGCashApp(cartTotal)}>
+                    <Smartphone size={18} aria-hidden="true" /> Open GCash <ExternalLink size={14} aria-hidden="true" />
+                  </button>
+                  <p className="sf-gcash-receipt-note">After paying, upload the receipt from GCash so staff can verify your payment.</p>
 
-                  <div style={{ marginTop: '0.7rem', background: 'rgba(239, 68, 68, 0.22)', border: '1px solid rgba(252, 165, 165, 0.7)', borderRadius: '10px', padding: '0.6rem 0.75rem', display: 'flex', gap: '8px', alignItems: 'flex-start', color: '#fee2e2' }}>
-                      <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '1px', color: '#fecaca' }} />
-                      <span style={{ fontSize: '0.76rem', lineHeight: 1.45 }}>
-                        <strong style={{ color: '#fff' }}>Warning:</strong> Uploading a random image or a fake/invalid receipt will result in your <strong style={{ color: '#fff' }}>order being CANCELLED</strong>. Please upload your real GCash transaction receipt only.
-                      </span>
-                    </div>
-                  </div>
 
                   {/* GCash Payment Receipt Upload (STRICTLY REQUIRED) */}
                   <div
@@ -2137,7 +1963,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                       padding: '0.85rem'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div className="sf-gcash-upload-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <label style={{ fontWeight: 800, fontSize: '0.84rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Receipt size={16} style={{ color: !gcashReceiptImage ? '#fca5a5' : '#6ee7b7' }} />
                         <span>Upload GCash Receipt</span>
@@ -2189,7 +2015,15 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                     {!gcashReceiptImage ? (
                       <div>
                         <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => receiptInputRef.current?.click()}
+                          onKeyDown={event => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              receiptInputRef.current?.click();
+                            }
+                          }}
                           style={{
                             border: gcashReceiptError ? '2px dashed #f87171' : '2px dashed rgba(255, 255, 255, 0.7)',
                             background: gcashReceiptError ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.1)',
@@ -2255,7 +2089,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                     ) : (
                       <div>
                         {/* Attached Receipt Card */}
-                        <div style={{
+                        <div className="sf-gcash-attachment" style={{
                           background: '#ffffff',
                           borderRadius: '10px',
                           padding: '0.65rem 0.75rem',
@@ -2300,7 +2134,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+                          <div className="sf-gcash-attachment-actions" style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
                             <button
                               type="button"
                               onClick={() => setPreviewModalImage(gcashReceiptImage)}
@@ -2363,7 +2197,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                       </div>
                     )}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Loyalty Points Redemption Checkbox Button */}
@@ -2627,7 +2461,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               </button>
             </div>
 
-            <div style={{
+            <div className="sf-gcash-qr-expanded" style={{
               background: '#ffffff',
               padding: '12px',
               borderRadius: '16px',
@@ -2641,8 +2475,6 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                 alt="Official GCash QR Code"
                 referrerPolicy="no-referrer"
                 style={{
-                  width: '260px',
-                  height: '260px',
                   aspectRatio: '1 / 1',
                   objectFit: 'contain',
                   borderRadius: '8px',
