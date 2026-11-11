@@ -267,3 +267,60 @@ body:has(.responsive-overlay) { overflow: hidden; }
   .sf-gcash-attachment-actions { width: 100%; }
   .sf-gcash-attachment-actions button { flex: 1 1 auto; }
 }
+
+/* Order confirmation and payment notices */
+.cb-order-confirmation, .cb-payment-notice {
+  min-width: 0;
+  border: 1px solid #ebd3bb;
+  border-radius: 12px;
+  background: #fffcf9;
+  color: #3d2314;
+  overflow-wrap: anywhere;
+}
+.cb-order-confirmation { padding: clamp(.85rem, 2.5vw, 1.25rem); }
+.cb-order-notice-row, .cb-payment-notice, .cb-order-notice-actions, .cb-payment-notice-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .55rem .75rem;
+}
+.cb-order-notice-row, .cb-payment-notice { justify-content: space-between; }
+.cb-order-notice-title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0;
+  font-size: 1.05rem;
+  color: #3d2314;
+}
+.cb-order-notice-title svg, .cb-payment-notice-icon { flex-shrink: 0; }
+.cb-payment-notice-icon { color: #9a4109; }
+.cb-order-notice-detail { margin: .3rem 0 0; color: #6d5140; font-size: .82rem; line-height: 1.45; }
+.cb-payment-notice { padding: .65rem .8rem; font-size: .8rem; }
+.cb-payment-notice-after-order { margin-top: .9rem; background: #fff5e9; }
+.cb-payment-notice-history { margin-top: .45rem; }
+.cb-payment-notice-pos { display: block; margin-bottom: .75rem; }
+.cb-payment-notice-label { display: block; font-weight: 800; }
+.cb-payment-notice-info.cb-payment-notice-label { display: flex; }
+.cb-order-notice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 44px;
+  padding: .45rem .7rem;
+  border: 1px solid #e5c7ab;
+  border-radius: 8px;
+  background: #fff;
+  color: #633a23;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.cb-order-notice-primary { background: #3d2314; border-color: #3d2314; color: #fff; }
+.cb-order-notice-button:focus-visible { outline: 2px solid #ab4c0b; outline-offset: 2px; }
+@media (max-width: 480px) {
+  .cb-order-notice-row > .cb-order-notice-button, .cb-order-notice-actions { width: 100%; }
+  .cb-order-notice-actions > .cb-order-notice-button { flex: 1 1 auto; }
+}

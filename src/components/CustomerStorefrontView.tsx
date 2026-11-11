@@ -1205,14 +1205,14 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       {/* Order Ref Success Alert */}
       {placedOrderRef && (
         <div style={{ maxWidth: '1200px', margin: '1.5rem auto 0', padding: '0 1.5rem' }}>
-          <div style={{ background: '#ecfdf5', border: '2px solid #10b981', borderRadius: '12px', padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="cb-order-confirmation">
+            <div className="cb-order-notice-row">
               <div>
-                <h3 style={{ margin: 0, color: '#065f46', fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <CheckCircle2 size={20} style={{ color: '#059669' }} /> Order Placed Successfully!
+                <h3 className="cb-order-notice-title">
+                  <CheckCircle2 size={20} style={{ color: '#059669' }} /> Order placed successfully
                 </h3>
-                <p style={{ margin: '0.25rem 0 0', color: '#047857', fontSize: '0.9rem' }}>
-                  Your order reference code is <strong>{placedOrderRef}</strong>. You can track status live in your Customer Account!
+                <p className="cb-order-notice-detail">
+                  Order <strong>{placedOrderRef}</strong> is ready to track in your account.
                 </p>
               </div>
               <button
@@ -1220,7 +1220,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                   setIsAccountModalOpen(true);
                   setAccountTab('orders');
                 }}
-                style={{ background: '#059669', color: '#fff', border: 'none', padding: '0.6rem 1.25rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                className="cb-order-notice-button cb-order-notice-primary"
               >
                 <span>Track Order</span>
                 <ArrowRight size={16} />
@@ -1229,53 +1229,25 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
 
             {/* GCash Quick Action / Confirmation Card if paid via GCash */}
             {lastPlacedGcashInfo && lastPlacedGcashInfo.orderRef === placedOrderRef && (
-              <div style={{
-                marginTop: '1rem',
-                paddingTop: '0.9rem',
-                borderTop: '1px solid #a7f3d0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
-                background: '#ffffff',
-                padding: '0.9rem 1rem',
-                borderRadius: '10px',
-                border: '1.5px solid #007dfe'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ background: '#007dfe', color: '#fff', width: '38px', height: '38px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Smartphone size={22} />
-                  </div>
+              <div className="cb-payment-notice cb-payment-notice-after-order">
+                <div className="cb-payment-notice-info">
+                  <Smartphone className="cb-payment-notice-icon" size={18} aria-hidden="true" />
                   <div>
-                    <span style={{ display: 'block', fontWeight: 900, color: '#0056b3', fontSize: '0.9rem' }}>
-                      GCash Payment Destination: 09474960778
+                    <span className="cb-payment-notice-label">
+                      GCash account · 09474960778
                     </span>
-                    <span style={{ fontSize: '0.78rem', color: '#4b5563' }}>
-                      CommonBrew Taytay • Total Due: <strong style={{ color: '#007dfe' }}>₱{lastPlacedGcashInfo.totalAmount}</strong>
-                      <span> • Payment Proof: <strong style={{ color: '#059669' }}>GCash Receipt Uploaded ✓</strong></span>
+                    <span className="cb-order-notice-detail">
+                      Order total: <strong>₱{lastPlacedGcashInfo.totalAmount}</strong>
+                      <span> · Receipt uploaded</span>
                     </span>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div className="cb-order-notice-actions">
                   <button
                     type="button"
                     onClick={() => handleOpenGCashApp(lastPlacedGcashInfo.totalAmount)}
-                    style={{
-                      background: '#007dfe',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '0.5rem 0.9rem',
-                      fontWeight: 800,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      boxShadow: '0 2px 6px rgba(0, 125, 254, 0.25)'
-                    }}
+                    className="cb-order-notice-button cb-order-notice-primary"
                   >
                     <Smartphone size={14} />
                     <span>Open GCash App</span>
@@ -1291,19 +1263,7 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                         setTimeout(() => setIsGcashCopied(false), 3000);
                       }
                     }}
-                    style={{
-                      background: isGcashCopied ? '#10b981' : '#eff6ff',
-                      color: isGcashCopied ? '#ffffff' : '#007dfe',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: '8px',
-                      padding: '0.5rem 0.85rem',
-                      fontWeight: 700,
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem'
-                    }}
+                    className="cb-order-notice-button"
                   >
                     {isGcashCopied ? <Check size={14} /> : <Copy size={14} />}
                     <span>{isGcashCopied ? 'Copied 09474960778! ✓' : 'Copy 09474960778'}</span>
@@ -3190,9 +3150,9 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                                 </div>
 
                                 {order.paymentMethod === 'GCash' && (
-                                  <div style={{ marginTop: '0.45rem', fontSize: '0.74rem', background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe', padding: '8px 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <Smartphone size={14} color="#007dfe" />
+                                  <div className="cb-payment-notice cb-payment-notice-history">
+                                    <div className="cb-payment-notice-info">
+                                      <Smartphone className="cb-payment-notice-icon" size={16} aria-hidden="true" />
                                       <span><strong>GCash Account:</strong> 09474960778</span>
                                       {order.gcashReceiptImage ? (
                                         <span style={{ color: '#059669', fontWeight: 800 }}>• GCash Receipt Attached ✓</span>
@@ -3200,12 +3160,12 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                                         <span>• <strong>Ref:</strong> {order.gcashReferenceNumber}</span>
                                       ) : null)}
                                     </div>
-                                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    <div className="cb-order-notice-actions">
                                       {order.gcashReceiptImage && (
                                         <button
                                           type="button"
                                           onClick={() => setPreviewModalImage(order.gcashReceiptImage!)}
-                                          style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                          className="cb-order-notice-button"
                                         >
                                           <Receipt size={10} />
                                           <span>View Uploaded Receipt</span>
@@ -3214,22 +3174,25 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                                       <button
                                         type="button"
                                         onClick={() => handleOpenGCashApp(order.totalAmount)}
-                                        style={{ background: '#007dfe', color: '#fff', border: 'none', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}
+                                        className="cb-order-notice-button"
                                       >
                                         <Smartphone size={10} />
                                         <span>GCash App</span>
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => {
-                                          if (navigator?.clipboard?.writeText) {
-                                            navigator.clipboard.writeText('09474960778');
-                                            alert('Copied GCash Account: 09474960778');
+                                        onClick={async () => {
+                                          try {
+                                            await navigator.clipboard.writeText('09474960778');
+                                            setIsGcashCopied(true);
+                                            setTimeout(() => setIsGcashCopied(false), 3000);
+                                          } catch {
+                                            setIsGcashCopied(false);
                                           }
                                         }}
-                                        style={{ background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '4px', padding: '3px 8px', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}
+                                        className="cb-order-notice-button"
                                       >
-                                        Copy 09474960778
+                                        {isGcashCopied ? 'Copied' : 'Copy number'}
                                       </button>
                                     </div>
                                   </div>

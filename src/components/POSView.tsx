@@ -701,13 +701,13 @@ export const POSView: React.FC = () => {
           </div>
 
           {paymentMethod === 'GCash' && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '0.5rem 0.75rem', marginBottom: '0.75rem', fontSize: '0.8rem', color: '#1e40af' }}>
-              <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Smartphone size={14} color="#007dfe" />
-                <span>GCash Recipient: 09474960778</span>
+            <div className="cb-payment-notice cb-payment-notice-pos">
+              <div className="cb-payment-notice-info cb-payment-notice-label">
+                <Smartphone className="cb-payment-notice-icon" size={16} aria-hidden="true" />
+                <span>GCash recipient · 09474960778</span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '2px' }}>
-                CommonBrew Taytay • Customer scans or sends here
+              <div className="cb-order-notice-detail">
+                CommonBrew Taytay · Customers can scan or send to this number.
               </div>
             </div>
           )}
