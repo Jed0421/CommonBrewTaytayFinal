@@ -57,7 +57,6 @@ import {
   QrCode,
   UploadCloud,
   FileImage,
-  Maximize2
 } from 'lucide-react';
 import { useRealtimeSync } from '../lib/realtimeSync';
 import { LegalDocumentsModal } from './LegalDocumentsModal';
@@ -178,12 +177,6 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
   const [isGcashCopied, setIsGcashCopied] = useState(false);
   const [isAmountCopied, setIsAmountCopied] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [lastPlacedGcashInfo, setLastPlacedGcashInfo] = useState<{
-    orderRef: string;
-    totalAmount: number;
-    gcashAccount: string;
-    gcashRef?: string;
-  } | null>(null);
   const [useLoyaltyPoints, setUseLoyaltyPoints] = useState(false);
   const [checkoutNotes, setCheckoutNotes] = useState('');
   const [orderPlacing, setOrderPlacing] = useState(false);
@@ -944,14 +937,6 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
       const data = await res.json();
       if (data.success) {
         setPlacedOrderRef(data.orderRef);
-        if (paymentMethod === 'GCash') {
-          setLastPlacedGcashInfo({
-            orderRef: data.orderRef,
-            totalAmount: cartTotal,
-            gcashAccount: '09474960778',
-            gcashRef: gcashReferenceNumber.trim() || undefined
-          });
-        }
         setCart([]);
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
@@ -1227,50 +1212,6 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
               </button>
             </div>
 
-            {/* GCash Quick Action / Confirmation Card if paid via GCash */}
-            {lastPlacedGcashInfo && lastPlacedGcashInfo.orderRef === placedOrderRef && (
-              <div className="cb-payment-notice cb-payment-notice-after-order">
-                <div className="cb-payment-notice-info">
-                  <Smartphone className="cb-payment-notice-icon" size={18} aria-hidden="true" />
-                  <div>
-                    <span className="cb-payment-notice-label">
-                      GCash account · 09474960778
-                    </span>
-                    <span className="cb-order-notice-detail">
-                      Order total: <strong>₱{lastPlacedGcashInfo.totalAmount}</strong>
-                      <span> · Receipt uploaded</span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="cb-order-notice-actions">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenGCashApp(lastPlacedGcashInfo.totalAmount)}
-                    className="cb-order-notice-button cb-order-notice-primary"
-                  >
-                    <Smartphone size={14} />
-                    <span>Open GCash App</span>
-                    <ExternalLink size={12} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (navigator?.clipboard?.writeText) {
-                        navigator.clipboard.writeText('09474960778');
-                        setIsGcashCopied(true);
-                        setTimeout(() => setIsGcashCopied(false), 3000);
-                      }
-                    }}
-                    className="cb-order-notice-button"
-                  >
-                    {isGcashCopied ? <Check size={14} /> : <Copy size={14} />}
-                    <span>{isGcashCopied ? 'Copied 09474960778! ✓' : 'Copy 09474960778'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1913,250 +1854,54 @@ export const CustomerStorefrontView: React.FC<Props> = ({ onSwitchToStaffLogin, 
                   <p className="sf-gcash-receipt-note">After paying, upload the receipt from GCash so staff can verify your payment.</p>
 
 
-                  {/* GCash Payment Receipt Upload (STRICTLY REQUIRED) */}
-                  <div
-                    id="gcash-receipt-upload-section"
-                    style={{
-                      background: !gcashReceiptImage ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                      border: !gcashReceiptImage ? '1.5px solid rgba(248, 113, 113, 0.6)' : '1.5px solid rgba(52, 211, 153, 0.6)',
-                      borderRadius: '12px',
-                      padding: '0.85rem'
-                    }}
-                  >
-                    <div className="sf-gcash-upload-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <label style={{ fontWeight: 800, fontSize: '0.84rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <Receipt size={16} style={{ color: !gcashReceiptImage ? '#fca5a5' : '#6ee7b7' }} />
-                        <span>Upload GCash Receipt</span>
-                        <span style={{ color: '#f87171', fontSize: '1rem', fontWeight: 900 }}>*</span>
-                      </label>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        fontWeight: 900,
-                        padding: '2px 8px',
-                        borderRadius: '6px',
-                        background: !gcashReceiptImage ? '#ef4444' : '#10b981',
-                        color: '#ffffff',
-                        letterSpacing: '0.03em'
-                      }}>
-                        {!gcashReceiptImage ? 'REQUIRED' : 'RECEIPT ATTACHED ✓'}
+                  <section className="cb-receipt-upload" id="gcash-receipt-upload-section" aria-labelledby="gcash-receipt-title">
+                    <div className="cb-receipt-upload-heading">
+                      <h4 id="gcash-receipt-title"><Receipt size={16} aria-hidden="true" /> GCash receipt</h4>
+                      <span className="cb-receipt-status" role="status">
+                        {gcashReceiptImage ? 'Attached' : 'Required'}
                       </span>
                     </div>
-
-                    {/* Inline Error Message */}
-                    {gcashReceiptError && (
-                      <div style={{
-                        background: '#fef2f2',
-                        border: '1.5px solid #f87171',
-                        borderRadius: '8px',
-                        padding: '0.65rem 0.75rem',
-                        marginBottom: '0.65rem',
-                        color: '#991b1b',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}>
-                        <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
-                        <span>{gcashReceiptError}</span>
-                      </div>
-                    )}
-
-                    {/* Hidden Native File Input */}
+                    {gcashReceiptError && <p className="cb-receipt-error" role="alert">{gcashReceiptError}</p>}
                     <input
                       ref={receiptInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handleReceiptFileChange}
-                      style={{ display: 'none' }}
+                      hidden
                       id="gcash-receipt-file-input"
                     />
-
-                    {!gcashReceiptImage ? (
-                      <div>
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => receiptInputRef.current?.click()}
-                          onKeyDown={event => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault();
-                              receiptInputRef.current?.click();
-                            }
-                          }}
-                          style={{
-                            border: gcashReceiptError ? '2px dashed #f87171' : '2px dashed rgba(255, 255, 255, 0.7)',
-                            background: gcashReceiptError ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.1)',
-                            borderRadius: '12px',
-                            padding: '1.25rem 1rem',
-                            textAlign: 'center',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.45rem'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                            e.currentTarget.style.borderColor = '#ffffff';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = gcashReceiptError ? 'rgba(239, 68, 68, 0.22)' : 'rgba(255, 255, 255, 0.1)';
-                            e.currentTarget.style.borderColor = gcashReceiptError ? '#f87171' : 'rgba(255, 255, 255, 0.7)';
-                          }}
-                        >
-                          <div style={{
-                            width: '46px',
-                            height: '46px',
-                            borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.25)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff'
-                          }}>
-                            <UploadCloud size={24} />
-                          </div>
-                          <div>
-                            <div style={{ color: '#ffffff', fontWeight: 900, fontSize: '0.92rem', marginBottom: '2px' }}>
-                              {isReceiptProcessing ? 'Processing Receipt Image...' : 'Click or Tap to Upload GCash Receipt'}
-                            </div>
-                            <div style={{ color: '#e0f2fe', fontSize: '0.74rem' }}>
-                              Select your downloaded receipt or screenshot (JPG, PNG, WEBP)
+                    {gcashReceiptImage ? (
+                      <>
+                        <div className="cb-receipt-attachment">
+                          <div className="cb-receipt-file">
+                            <img src={gcashReceiptImage} alt="" />
+                            <div>
+                              <strong>{gcashReceiptFileName || 'GCash receipt'}</strong>
+                              {gcashReceiptFileSize && <span>{gcashReceiptFileSize}</span>}
                             </div>
                           </div>
-                          <span style={{
-                            background: '#ffffff',
-                            color: '#0052cc',
-                            fontWeight: 800,
-                            fontSize: '0.74rem',
-                            padding: '4px 14px',
-                            borderRadius: '20px',
-                            marginTop: '3px',
-                            boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
-                          }}>
-                            Choose Receipt File
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '7px', color: '#fef08a', fontSize: '0.73rem', fontWeight: 700 }}>
-                          <AlertCircle size={14} style={{ color: '#fde047', flexShrink: 0 }} />
-                          <span>Required: Please download your GCash transaction receipt and upload it to place your order.</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        {/* Attached Receipt Card */}
-                        <div className="sf-gcash-attachment" style={{
-                          background: '#ffffff',
-                          borderRadius: '10px',
-                          padding: '0.65rem 0.75rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '0.75rem',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                        }}>
-                          <div
-                            onClick={() => setPreviewModalImage(gcashReceiptImage)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.65rem',
-                              cursor: 'pointer',
-                              flex: 1,
-                              minWidth: 0
-                            }}
-                            title="Click to zoom / view full receipt"
-                          >
-                            <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #cbd5e1', flexShrink: 0 }}>
-                              <img
-                                src={gcashReceiptImage}
-                                alt="GCash Receipt Preview"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                              />
-                              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                                <Maximize2 size={12} />
-                              </div>
-                            </div>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={{ fontWeight: 800, fontSize: '0.8rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {gcashReceiptFileName || 'GCash_Payment_Receipt.jpg'}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: '0.68rem', color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <CheckCircle2 size={11} />
-                                <span>Receipt Attached ({gcashReceiptFileSize || 'Ready'})</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="sf-gcash-attachment-actions" style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModalImage(gcashReceiptImage)}
-                              style={{
-                                background: '#eff6ff',
-                                color: '#1d4ed8',
-                                border: '1px solid #bfdbfe',
-                                borderRadius: '6px',
-                                padding: '4px 8px',
-                                fontSize: '0.72rem',
-                                fontWeight: 800,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '3px'
-                              }}
-                            >
-                              <Eye size={12} />
-                              <span>View</span>
+                          <div className="cb-order-notice-actions">
+                            <button type="button" className="cb-order-notice-button cb-order-notice-primary" onClick={() => setPreviewModalImage(gcashReceiptImage)}>
+                              <Eye size={15} aria-hidden="true" /> View
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => receiptInputRef.current?.click()}
-                              style={{
-                                background: '#f1f5f9',
-                                color: '#475569',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '6px',
-                                padding: '4px 8px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
+                            <button type="button" className="cb-order-notice-button" disabled={isReceiptProcessing} onClick={() => receiptInputRef.current?.click()}>
                               Replace
                             </button>
-                            <button
-                              type="button"
-                              onClick={handleRemoveReceipt}
-                              style={{
-                                background: '#fef2f2',
-                                color: '#ef4444',
-                                border: '1px solid #fecaca',
-                                borderRadius: '6px',
-                                padding: '4px 8px',
-                                fontSize: '0.72rem',
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              <Trash2 size={12} />
+                            <button type="button" className="cb-order-notice-button cb-receipt-remove" disabled={isReceiptProcessing} aria-label="Remove GCash receipt" onClick={handleRemoveReceipt}>
+                              <Trash2 size={15} aria-hidden="true" />
                             </button>
                           </div>
                         </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '6px', color: '#a7f3d0', fontSize: '0.73rem', fontWeight: 700 }}>
-                          <CheckCircle2 size={14} style={{ color: '#34d399', flexShrink: 0 }} />
-                          <span>GCash receipt attached! Cashier will verify this proof upon receiving your order.</span>
-                        </div>
-                      </div>
+                        <p className="cb-order-notice-detail">Staff will verify the receipt after you place your order.</p>
+                      </>
+                    ) : (
+                      <button type="button" className="cb-receipt-picker" disabled={isReceiptProcessing} onClick={() => receiptInputRef.current?.click()}>
+                        <UploadCloud size={21} aria-hidden="true" />
+                        <strong>{isReceiptProcessing ? 'Processing receipt…' : 'Choose receipt image'}</strong>
+                        <span>Upload your downloaded receipt or screenshot.</span>
+                      </button>
                     )}
-                  </div>
+                  </section>
                 </section>
               )}
 

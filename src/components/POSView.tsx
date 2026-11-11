@@ -996,40 +996,24 @@ export const POSView: React.FC = () => {
                       )}
 
                       {order.paymentMethod === 'GCash' && (
-                        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '0.55rem 0.75rem', borderRadius: '8px', marginTop: '0.5rem', fontSize: '0.78rem', color: '#1e40af', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Smartphone size={14} color="#007dfe" />
-                            <strong>GCash to:</strong> 09474960778
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            {order.gcashReceiptImage ? (
+                        <div className="cb-payment-notice cb-payment-notice-history">
+                          <div className="cb-payment-notice-info">
+                            <Smartphone className="cb-payment-notice-icon" size={16} aria-hidden="true" />
+                            <span><strong>GCash recipient</strong> · 09474960778</span>
+                          </div>
+                          {order.gcashReceiptImage ? (
+                            <div className="cb-order-notice-actions">
                               <button
                                 type="button"
+                                className="cb-order-notice-button cb-order-notice-primary"
                                 onClick={() => setViewReceiptModalImage(order.gcashReceiptImage!)}
-                                style={{
-                                  background: '#059669',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  padding: '5px 12px',
-                                  fontSize: '0.76rem',
-                                  fontWeight: 800,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '5px',
-                                  boxShadow: '0 2px 6px rgba(5, 150, 105, 0.3)'
-                                }}
                               >
-                                <Eye size={13} />
-                                <span>View Uploaded GCash Receipt 📄</span>
+                                <Eye size={15} aria-hidden="true" /> View GCash receipt
                               </button>
-                            ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 700 }}>
-                                ⚠️ No receipt attached
-                              </span>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            <span className="cb-order-notice-detail">No receipt attached</span>
+                          )}
                         </div>
                       )}
 

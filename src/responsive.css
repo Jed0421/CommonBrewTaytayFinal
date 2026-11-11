@@ -257,15 +257,9 @@ body:has(.responsive-overlay) { overflow: hidden; }
 .sf-gcash-qr img, .sf-gcash-qr-expanded img { display: block; width: 100%; height: auto; }
 .sf-gcash-qr p { margin: 0; max-width: 32ch; color: #40587a; font-size: .76rem; line-height: 1.5; }
 .sf-gcash-open { width: 100%; background: #fff; }
-.sf-gcash-upload-heading, .sf-gcash-attachment, .sf-gcash-attachment-actions { flex-wrap: wrap; }
-.sf-gcash-upload-heading { gap: .35rem; }
-.sf-gcash-attachment > :first-child { flex-basis: 150px !important; }
-.sf-gcash-attachment-actions { max-width: 100%; }
 .sf-gcash-qr-expanded { width: min(100%, 286px); box-sizing: border-box; }
 @media (max-width: 420px) {
   .sf-gcash-copy-row button { width: 100%; }
-  .sf-gcash-attachment-actions { width: 100%; }
-  .sf-gcash-attachment-actions button { flex: 1 1 auto; }
 }
 
 /* Order confirmation and payment notices */
@@ -297,7 +291,6 @@ body:has(.responsive-overlay) { overflow: hidden; }
 .cb-payment-notice-icon { color: #9a4109; }
 .cb-order-notice-detail { margin: .3rem 0 0; color: #6d5140; font-size: .82rem; line-height: 1.45; }
 .cb-payment-notice { padding: .65rem .8rem; font-size: .8rem; }
-.cb-payment-notice-after-order { margin-top: .9rem; background: #fff5e9; }
 .cb-payment-notice-history { margin-top: .45rem; }
 .cb-payment-notice-pos { display: block; margin-bottom: .75rem; }
 .cb-payment-notice-label { display: block; font-weight: 800; }
@@ -324,3 +317,63 @@ body:has(.responsive-overlay) { overflow: hidden; }
   .cb-order-notice-row > .cb-order-notice-button, .cb-order-notice-actions { width: 100%; }
   .cb-order-notice-actions > .cb-order-notice-button { flex: 1 1 auto; }
 }
+
+.cb-receipt-upload {
+  min-width: 0;
+  padding: .8rem;
+  border: 1px solid #ebd3bb;
+  border-radius: 12px;
+  background: #fffcf9;
+  color: #3d2314;
+}
+.cb-receipt-upload-heading, .cb-receipt-attachment, .cb-receipt-file {
+  display: flex;
+  align-items: center;
+  gap: .55rem .75rem;
+}
+.cb-receipt-upload-heading, .cb-receipt-attachment {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.cb-receipt-upload-heading { margin-bottom: .65rem; }
+.cb-receipt-upload-heading h4 {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin: 0;
+  font-size: .9rem;
+}
+.cb-receipt-status {
+  padding: .2rem .55rem;
+  border-radius: 6px;
+  background: #f5e7d9;
+  font-size: .74rem;
+  font-weight: 700;
+}
+.cb-receipt-file { flex: 1 1 140px; min-width: 0; }
+.cb-receipt-file img {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  object-fit: cover;
+}
+.cb-receipt-file > div { min-width: 0; overflow-wrap: anywhere; font-size: .8rem; }
+.cb-receipt-file span { display: block; color: #6d5140; font-size: .73rem; }
+.cb-receipt-picker {
+  display: grid;
+  justify-items: center;
+  gap: .35rem;
+  width: 100%;
+  padding: .9rem .65rem;
+  border: 1px dashed #b98861;
+  border-radius: 8px;
+  background: #fff5e9;
+  color: #3d2314;
+  font: inherit;
+  cursor: pointer;
+}
+.cb-receipt-picker span { color: #6d5140; font-size: .76rem; }
+.cb-receipt-picker:focus-visible { outline: 2px solid #ab4c0b; outline-offset: 2px; }
+.cb-receipt-remove, .cb-receipt-error { color: #9b2920; }
+.cb-receipt-error { margin: 0 0 .6rem; font-size: .8rem; }
