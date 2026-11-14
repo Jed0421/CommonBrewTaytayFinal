@@ -18,7 +18,12 @@ interface Message {
 export const CommonBotDrawer: React.FC<Props> = ({ isOpen, onClose, userName }) => {
   const initialGreeting = `Hello ${userName || 'there'}! I am **CommonBot**, your AI assistant for CommonBrew Taytay. ☕
 
-I can help with sales, inventory, recipes, and business questions.
+I can help you monitor and manage our business:
+
+- 📊 Analyze live sales, revenue metrics, and transaction trends
+- 📦 Check ingredient stock levels and critical inventory alerts
+- ☕ Answer coffee brewing questions and help with recipes and barista techniques
+- 💡 Provide business insights and help with math, writing, and general questions
 
 **Shop hours:** 11:00 AM–9:00 PM daily.
 

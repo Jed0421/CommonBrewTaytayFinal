@@ -3546,7 +3546,7 @@ app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
     const generalInquiriesSummary = `
 - Cafe Name: CommonBrew Taytay
 - Physical Location: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)
-- Operating Hours: 7:00 AM – 10:00 PM Daily (Monday through Sunday)
+- Operating Hours: 11:00 AM – 9:00 PM Daily (Monday through Sunday)
 - Contact Number: +63 917 123 4567 | +63 947 496 0778
 - Official Email: commonbrewtaytay@gmail.com
 - Service Options: Online Ordering for Delivery in Taytay (₱45 delivery fee), Store Pickup (Free), and Dine-In
@@ -3636,7 +3636,7 @@ CommonBrew Taytay cafe, artisan coffee craftsmanship, and customer online orderi
 3. **Loyalty Points Status**: Points balance, earning rate (5 pts per ₱50 spent), and ₱110 reward redemption (100 pts = ₱110 discount, extra points remain in balance).
 4. **Best Sellers & Menu**: Top 10 drinks and pastries, pricing, customizations, add-ons, and availability.
 5. **Brewing & Coffee Tips**: Coffee beans (Arabica & Robusta), brewing methods (pour-over, cold brew, French press, espresso), roast profiles, caffeine content, and food pairings.
-6. **General Store Inquiries**: Operating hours (7:00 AM – 10:00 PM Daily), address (143 Manila East Road, Brgy. San Juan, Taytay, Rizal near Club Manila East), contact numbers, and payment options (GCash, Cash on Pickup, Cash on Delivery, Cash on Store).
+6. **General Store Inquiries**: Operating hours (11:00 AM – 9:00 PM Daily), address (143 Manila East Road, Brgy. San Juan, Taytay, Rizal near Club Manila East), contact numbers, and payment options (GCash, Cash on Pickup, Cash on Delivery, Cash on Store).
 
 MANDATORY USER PROMPT POLICY (CHATGPT-STYLE):
 - CommonBot MUST respond with a helpful, conversational message to ALL prompts in the chatbot.
@@ -3688,7 +3688,7 @@ ${generalInquiriesSummary}`;
     const convoHistory = Array.isArray(history) ? history : (Array.isArray(reqMessages) ? reqMessages : []);
 
     // Tailored dynamic fallback based on category (used if AI service is temporarily unreachable)
-    let dynamicFallback = `### Hello ${custName}! ☕\n\nI am **CommonBot**, your AI assistant for **CommonBrew Taytay**! Here is your quick store overview:\n\n- 👤 **Customer Status**: ${activeCust ? `Logged in as ${activeCust.fullName} (@${activeCust.username}) • Address: ${activeCust.address || 'Taytay'}` : 'Guest'}\n- 📦 **Order Status**: ${myOnlineOrders.length > 0 ? `Order #${myOnlineOrders[0].orderRef} is ${myOnlineOrders[0].status}` : 'No active online orders'}\n- ⭐ **Loyalty Points**: **${custPoints}/100 pts** (Earn 5 pts per ₱50; Every 100 pts = ₱110 discount)\n- 🏆 **Top Best Seller**: **Iced Spanish Latte** & **Sea Salt Latte**\n- ☕ **Brewing Tips**: Ask about pour-over ratios, cold brew, or pastry pairings!\n- ℹ️ **Store Hours & Location**: 7:00 AM – 10:00 PM Daily at 143 Manila East Road, Taytay\n\nHow can I help you today?`;
+    let dynamicFallback = `### Hello ${custName}! ☕\n\nI am **CommonBot**, your AI assistant for **CommonBrew Taytay**! Here is your quick store overview:\n\n- 👤 **Customer Status**: ${activeCust ? `Logged in as ${activeCust.fullName} (@${activeCust.username}) • Address: ${activeCust.address || 'Taytay'}` : 'Guest'}\n- 📦 **Order Status**: ${myOnlineOrders.length > 0 ? `Order #${myOnlineOrders[0].orderRef} is ${myOnlineOrders[0].status}` : 'No active online orders'}\n- ⭐ **Loyalty Points**: **${custPoints}/100 pts** (Earn 5 pts per ₱50; Every 100 pts = ₱110 discount)\n- 🏆 **Top Best Seller**: **Iced Spanish Latte** & **Sea Salt Latte**\n- ☕ **Brewing Tips**: Ask about pour-over ratios, cold brew, or pastry pairings!\n- ℹ️ **Store Hours & Location**: 11:00 AM – 9:00 PM Daily at 143 Manila East Road, Taytay\n\nHow can I help you today?`;
 
     if (!scopeEvaluation.isAllowed || scopeEvaluation.category === 'out_of_scope') {
       dynamicFallback = `I apologize, but I cannot answer that question as I can only assist with inquiries regarding **CommonBrew Taytay** and our customer online ordering information. Please feel free to ask me anything about CommonBrew Taytay! ☕\n\nIn the meantime, let me recommend our **Top 5 Best-Selling Products** that our customers love:\n${top5Text}\n\nWould you like to check your customer status, track an active order, view your loyalty points balance, or try one of our best-sellers?`;
@@ -3703,7 +3703,7 @@ ${generalInquiriesSummary}`;
     } else if (scopeEvaluation.category === 'brewing_tips') {
       dynamicFallback = `### ☕ Barista Brewing & Coffee Tips\n\n- **Pour-Over (V60)**: Use a 1:15 ratio, medium grind, and 92°C water for crisp floral and citrus notes.\n- **Cold Brew**: 1:8 coarse coffee-to-water ratio steeped 16-18 hours in the fridge for a smooth, chocolatey, low-acid cup.\n- **Espresso**: 1:2 brew ratio extracted in 25-30 seconds.\n- **Pastry Pairing**: Try our **Iced Spanish Latte** with the warm **Belgian Choco Muffin**!`;
     } else if (scopeEvaluation.category === 'general_inquiries' || scopeEvaluation.category === 'greeting') {
-      dynamicFallback = `### ℹ️ Welcome to CommonBrew Taytay! ☕\n\n- **Operating Hours**: 7:00 AM – 10:00 PM Daily (Monday to Sunday)\n- **Location**: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)\n- **Contact Phone**: +63 917 123 4567 | +63 947 496 0778\n- **Email**: commonbrewtaytay@gmail.com\n- **Payment Options**: GCash, Cash on Pickup, Cash on Delivery, Cash on Store (COD)\n- **Delivery**: Flat ₱45 delivery fee within Taytay!`;
+      dynamicFallback = `### ℹ️ Welcome to CommonBrew Taytay! ☕\n\n- **Operating Hours**: 11:00 AM – 9:00 PM Daily (Monday to Sunday)\n- **Location**: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)\n- **Contact Phone**: +63 917 123 4567 | +63 947 496 0778\n- **Email**: commonbrewtaytay@gmail.com\n- **Payment Options**: GCash, Cash on Pickup, Cash on Delivery, Cash on Store (COD)\n- **Delivery**: Flat ₱45 delivery fee within Taytay!`;
     }
 
     const reply = await generateAIChatResponse(systemPrompt, convoHistory, question, dynamicFallback);
