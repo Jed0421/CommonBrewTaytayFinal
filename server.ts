@@ -3489,29 +3489,25 @@ app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
       });
     });
 
-    const top10Products = Object.entries(productSalesMap)
-      .map(([name, data]) => ({ name, qtySold: data.qty, totalRevenue: data.revenue }))
-      .sort((a, b) => b.qtySold - a.qtySold)
-      .slice(0, 10);
-
+    // Recommendations must come from the current, orderable menu, never sample products.
+    const availableMenu = products.filter(p => !p.isArchived && p.isAvailable);
+    const rankedMenu = [...availableMenu].sort((a, b) =>
+      (productSalesMap[b.name]?.qty || 0) - (productSalesMap[a.name]?.qty || 0));
+    const top10Products = rankedMenu.filter(p => (productSalesMap[p.name]?.qty || 0) > 0).slice(0, 10);
+    const formatMenuItem = (p: typeof products[number], idx: number) =>
+      `${idx + 1}. **${p.name}** (₱${p.price})`;
     const top10Text = top10Products.length > 0
-      ? top10Products.map((p, idx) => `${idx + 1}. **${p.name}** (${p.qtySold} sold)`).join('\n')
-      : '1. **Iced Spanish Latte**\n2. **Sea Salt Latte**\n3. **Belgian Choco Muffin**\n4. **Caramel Macchiato**\n5. **Matcha Green Tea Latte**';
-
-    // Top 5 Best Sellers for off-topic recommendations
-    const top5BestSellers = [
-      { name: 'Iced Spanish Latte', price: 150, desc: 'Our #1 best-seller! Rich espresso blended with sweet, creamy condensed milk' },
-      { name: 'Sea Salt Latte', price: 150, desc: 'Bold iced espresso crowned with our signature savory sea salt cream foam' },
-      { name: 'Belgian Choco Muffin', price: 85, desc: 'Decadent, warm dark chocolate muffin loaded with rich cocoa' },
-      { name: 'Caramel Macchiato', price: 155, desc: 'Layered vanilla milk, rich espresso, and buttery caramel drizzle' },
-      { name: 'Matcha Green Tea Latte', price: 150, desc: 'Ceremonial Japanese matcha whisked with fresh, creamy milk' }
-    ];
-    const top5Text = top5BestSellers.map((p, idx) => `${idx + 1}. ☕ **${p.name}** (₱${p.price}) - ${p.desc}`).join('\n');
-
-    // 2. Analyze Available Products and Remaining Ingredients
-    const menuList = products.filter(p => !p.isArchived).map(p => {
-      return `- **${p.name}** (₱${p.price}, ${p.productType}): ${p.isAvailable ? '✅ In Stock' : '❌ Out of Stock'}`;
-    }).join('\n');
+      ? top10Products.map((p, idx) => `${formatMenuItem(p, idx)} — ${productSalesMap[p.name].qty} sold`).join('\n')
+      : 'No sales ranking is available yet. Available menu options:\n' +
+        (rankedMenu.slice(0, 10).map(formatMenuItem).join('\n') || 'No menu items are currently available.');
+    const top5Text = rankedMenu.slice(0, 5).map(formatMenuItem).join('\n') || 'No menu items are currently available.';
+    const drink = rankedMenu.find(p => p.productType === 'Drink');
+    const food = rankedMenu.find(p => p.productType === 'Food');
+    const pairingText = drink && food
+      ? `Try **${drink.name}** with **${food.name}**, both on our available menu.`
+      : 'A drink-and-food pairing is not currently available. Please check the menu for available options.';
+    const menuList = availableMenu.map(p =>
+      `- **${p.name}** (₱${p.price}, ${p.productType})`).join('\n') || 'No menu items are currently available.';
 
     const lowStockIngredients = inventory
       .filter(i => !i.isArchived && i.currentStock <= i.criticalLevel)
@@ -3556,17 +3552,15 @@ app.post('/api/customer-chatbot/ask', chatbotLimiter, async (req, res) => {
     // 6. Brewing & Coffee Tips Grounding
     const brewingTipsSummary = `
 - Coffee Beans & Sourcing: Premium Arabica and Robusta beans, medium-dark roasted for maximum richness and low acidity.
-- Popular Espresso Drinks:
-  * Spanish Latte: Rich espresso, velvety milk, and sweet condensed milk (Top 1 Best Seller).
-  * Sea Salt Latte: Smooth iced espresso and milk crowned with signature savory sea salt cream foam.
-  * Caramel Macchiato: Layered vanilla milk, rich espresso shots, and buttery caramel drizzle.
+- Current menu recommendations:
+${top5Text}
 - Home Brewing Tips:
   * Pour-Over (V60): 1:15 to 1:16 coffee-to-water ratio, medium grind, 92-94°C water.
   * French Press: Coarse grind, 1:12 to 1:14 ratio, 4 minutes steep time.
   * Cold Brew: Coarse grind, 1:8 concentrate ratio, steeped for 16-18 hours in the fridge for a silky, smooth, chocolatey profile with low acidity.
   * Espresso: Fine grind, 1:2 extraction ratio in 25-30 seconds.
 - Caffeine Content: Single espresso shot (~65mg), Double shot in 16oz drinks (~130mg), 22oz upsized drinks (~195mg).
-- Food & Pastry Pairings: Iced Spanish Latte pairs exceptionally with the Belgian Choco Muffin or Butter Croissant.
+- Food & Pastry Pairings: ${pairingText}
 `;
 
     // 7. Analyze Customer Active & Recent Online Orders for Delivery/Arrival Time Estimation
@@ -3643,11 +3637,11 @@ MANDATORY USER PROMPT POLICY (CHATGPT-STYLE):
 - When answering on-topic questions about CommonBrew Taytay (customer status, online order tracking, delivery arrival time/ETA, loyalty points status, menu, best sellers, brewing & coffee tips, store location & hours, friendly greetings):
   Answer thoroughly, warmly, and helpfully like ChatGPT, formatted cleanly with Markdown (bullet points, bold text, readable spacing).
 - BUT when the user prompts an off-topic question and not about CommonBrew customers online ordering information (for example: programming/coding, math equations, school homework, politics, sports, entertainment/celebrities, other stores, or unrelated trivia):
-  You MUST say that you cannot answer that and ask them to please ask about CommonBrew Taytay, AND YOU MUST RECOMMEND OUR TOP 5 BEST-SELLING PRODUCTS!
+  You MUST say that you cannot answer that and ask them to please ask about CommonBrew Taytay, AND suggest up to five available menu products, if any.
   Use this friendly, ChatGPT-style response format for off-topic prompts:
   "I apologize, but I cannot answer that question as I can only assist with inquiries regarding CommonBrew Taytay and our customer online ordering information. Please feel free to ask me anything about CommonBrew Taytay! ☕
   
-  In the meantime, let me recommend our **Top 5 Best-Selling Products** that our customers love:
+  In the meantime, let me recommend our **Available Menu Recommendations** that our customers love:
   ${top5Text}
   
   Would you like to check your customer status, track an active order, view your loyalty points balance, or try one of our best-sellers?"
@@ -3688,10 +3682,10 @@ ${generalInquiriesSummary}`;
     const convoHistory = Array.isArray(history) ? history : (Array.isArray(reqMessages) ? reqMessages : []);
 
     // Tailored dynamic fallback based on category (used if AI service is temporarily unreachable)
-    let dynamicFallback = `### Hello ${custName}! ☕\n\nI am **CommonBot**, your AI assistant for **CommonBrew Taytay**! Here is your quick store overview:\n\n- 👤 **Customer Status**: ${activeCust ? `Logged in as ${activeCust.fullName} (@${activeCust.username}) • Address: ${activeCust.address || 'Taytay'}` : 'Guest'}\n- 📦 **Order Status**: ${myOnlineOrders.length > 0 ? `Order #${myOnlineOrders[0].orderRef} is ${myOnlineOrders[0].status}` : 'No active online orders'}\n- ⭐ **Loyalty Points**: **${custPoints}/100 pts** (Earn 5 pts per ₱50; Every 100 pts = ₱110 discount)\n- 🏆 **Top Best Seller**: **Iced Spanish Latte** & **Sea Salt Latte**\n- ☕ **Brewing Tips**: Ask about pour-over ratios, cold brew, or pastry pairings!\n- ℹ️ **Store Hours & Location**: 11:00 AM – 9:00 PM Daily at 143 Manila East Road, Taytay\n\nHow can I help you today?`;
+    let dynamicFallback = `### Hello ${custName}! ☕\n\nI am **CommonBot**, your AI assistant for **CommonBrew Taytay**! Here is your quick store overview:\n\n- 👤 **Customer Status**: ${activeCust ? `Logged in as ${activeCust.fullName} (@${activeCust.username}) • Address: ${activeCust.address || 'Taytay'}` : 'Guest'}\n- 📦 **Order Status**: ${myOnlineOrders.length > 0 ? `Order #${myOnlineOrders[0].orderRef} is ${myOnlineOrders[0].status}` : 'No active online orders'}\n- ⭐ **Loyalty Points**: **${custPoints}/100 pts** (Earn 5 pts per ₱50; Every 100 pts = ₱110 discount)\n- 🏆 **Top Best Seller**: ${rankedMenu[0] ? rankedMenu[0].name : 'No items currently available'}\n- ☕ **Brewing Tips**: Ask about pour-over ratios, cold brew, or pastry pairings!\n- ℹ️ **Store Hours & Location**: 11:00 AM – 9:00 PM Daily at 143 Manila East Road, Taytay\n\nHow can I help you today?`;
 
     if (!scopeEvaluation.isAllowed || scopeEvaluation.category === 'out_of_scope') {
-      dynamicFallback = `I apologize, but I cannot answer that question as I can only assist with inquiries regarding **CommonBrew Taytay** and our customer online ordering information. Please feel free to ask me anything about CommonBrew Taytay! ☕\n\nIn the meantime, let me recommend our **Top 5 Best-Selling Products** that our customers love:\n${top5Text}\n\nWould you like to check your customer status, track an active order, view your loyalty points balance, or try one of our best-sellers?`;
+      dynamicFallback = `I apologize, but I cannot answer that question as I can only assist with inquiries regarding **CommonBrew Taytay** and our customer online ordering information. Please feel free to ask me anything about CommonBrew Taytay! ☕\n\nIn the meantime, let me recommend our **Available Menu Recommendations** that our customers love:\n${top5Text}\n\nWould you like to check your customer status, track an active order, view your loyalty points balance, or try one of our best-sellers?`;
     } else if (scopeEvaluation.category === 'customer_status') {
       dynamicFallback = `### 👤 Customer Profile Status\n\n- **Name**: ${custName}\n- **Loyalty Balance**: **${custPoints} points** (${custPoints >= 100 ? '✅ Eligible for ₱110 discount!' : `${100 - (custPoints % 100)} more pts needed for next reward`})\n- **Registered Email**: ${activeCust?.email || 'Guest'}\n- **Contact Phone**: ${activeCust?.phone || 'Not provided'}\n- **Delivery Address**: ${activeCust?.address || 'Not set'}`;
     } else if (scopeEvaluation.category === 'order_status') {
@@ -3699,9 +3693,9 @@ ${generalInquiriesSummary}`;
     } else if (scopeEvaluation.category === 'loyalty_status') {
       dynamicFallback = `### ⭐ Loyalty Points Status\n\n- **Current Balance**: **${custPoints}/100 points**\n- **Earning Rate**: Earn **5 points** for every **₱50 spent** on any order.\n- **Redemption Rule**: Every **100 points** = **₱110 discount** (equivalent to 1 free upsized 22oz drink!).\n- **Balance Retention**: Only 100 points are deducted when you redeem, so your extra points (e.g. 105 - 100 = 5 points) remain in your balance.\n- **How to Use**: Select the *"Use Loyalty Points ${custPoints}/100"* checkbox under Payment Method during checkout!`;
     } else if (scopeEvaluation.category === 'best_sellers') {
-      dynamicFallback = `### 🏆 Top 10 Best Sellers at CommonBrew Taytay\n\n${top10Text}\n\n*Our #1 recommendation is the signature **Iced Spanish Latte** paired with a freshly baked **Belgian Choco Muffin**!*`;
+      dynamicFallback = `### 🏆 Menu Recommendations at CommonBrew Taytay\n\n${top10Text}\n\n${pairingText}`;
     } else if (scopeEvaluation.category === 'brewing_tips') {
-      dynamicFallback = `### ☕ Barista Brewing & Coffee Tips\n\n- **Pour-Over (V60)**: Use a 1:15 ratio, medium grind, and 92°C water for crisp floral and citrus notes.\n- **Cold Brew**: 1:8 coarse coffee-to-water ratio steeped 16-18 hours in the fridge for a smooth, chocolatey, low-acid cup.\n- **Espresso**: 1:2 brew ratio extracted in 25-30 seconds.\n- **Pastry Pairing**: Try our **Iced Spanish Latte** with the warm **Belgian Choco Muffin**!`;
+      dynamicFallback = `### ☕ Barista Brewing & Coffee Tips\n\n- **Pour-Over (V60)**: Use a 1:15 ratio, medium grind, and 92°C water for crisp floral and citrus notes.\n- **Cold Brew**: 1:8 coarse coffee-to-water ratio steeped 16-18 hours in the fridge for a smooth, chocolatey, low-acid cup.\n- **Espresso**: 1:2 brew ratio extracted in 25-30 seconds.\n- **Pastry Pairing**: ${pairingText}`;
     } else if (scopeEvaluation.category === 'general_inquiries' || scopeEvaluation.category === 'greeting') {
       dynamicFallback = `### ℹ️ Welcome to CommonBrew Taytay! ☕\n\n- **Operating Hours**: 11:00 AM – 9:00 PM Daily (Monday to Sunday)\n- **Location**: 143 Manila East Road, Brgy. San Juan, Taytay, Rizal (Near Club Manila East)\n- **Contact Phone**: +63 917 123 4567 | +63 947 496 0778\n- **Email**: commonbrewtaytay@gmail.com\n- **Payment Options**: GCash, Cash on Pickup, Cash on Delivery, Cash on Store (COD)\n- **Delivery**: Flat ₱45 delivery fee within Taytay!`;
     }
