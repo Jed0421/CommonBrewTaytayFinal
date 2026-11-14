@@ -32,7 +32,7 @@ I am **CommonBot**, your dedicated AI assistant for CommonBrew Taytay. To give y
 - ⭐ **Loyalty Points Status**: Check your balance (**${pts}/100 pts**), earning rate (5 pts per ₱50), and ₱110 reward redemption
 - 🏆 **Best Sellers**: Top 10 drinks and pastries, flavor recommendations, and menu prices
 - ☕ **Brewing & Coffee Tips**: Coffee beans, brewing techniques (espresso, cold brew, pour-over), and pastry pairings
-- ℹ️ **General Inquiries**: Store hours (7 AM – 10 PM), Taytay location, contact info, and payment methods
+- ℹ️ **General Inquiries**: Store hours (11:00 AM–9:00 PM), Taytay location, contact info, and payment methods
 
 *Note: I only respond to inquiries regarding CommonBrew Taytay and coffee.* How can I help you today?`;
   };
