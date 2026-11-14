@@ -218,6 +218,11 @@ export const AccessPortalModal: React.FC<Props> = ({
       setErrorMsg('Please enter a valid email address first.');
       return;
     }
+    if (regPhone && !/^9[0-9]{9}$/.test(regPhone)) {
+      setErrorMsg('Enter a 10-digit Philippine mobile number starting with 9, without +63 or the leading 0.');
+      return;
+    }
+
     if (regEmailError) {
       setErrorMsg('Email is already used');
       return;
@@ -302,7 +307,7 @@ export const AccessPortalModal: React.FC<Props> = ({
           fullName: regFullName.trim(),
           username: regUsername.trim(),
           email: regEmail.trim(),
-          phone: regPhone.trim(),
+          phone: regPhone ? `+63${regPhone}` : '',
           address: trimmedAddress,
           defaultAddress: trimmedAddress,
           password: regPassword,
@@ -1054,24 +1059,38 @@ export const AccessPortalModal: React.FC<Props> = ({
                 >
                   MOBILE NUMBER
                 </label>
-                <input
-                  type="text"
-                  value={regPhone}
-                  onChange={(e) => setRegPhone(e.target.value)}
-                  placeholder="+63 912 345 6789"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem 0.9rem',
-                    borderRadius: '12px',
-                    border: '2px solid #9ca3af',
-                    background: '#fafafa',
-                    fontSize: '0.9rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <span style={{ fontSize: '0.725rem', color: '#9ca3af', display: 'block', marginTop: '0.25rem' }}>
-                  For order tracking and delivery updates
+                <div style={{ display: 'flex', alignItems: 'center', border: '2px solid #9ca3af', borderRadius: '12px', background: '#fafafa', overflow: 'hidden' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', borderRight: '1px solid #d1d5db', flexShrink: 0, color: '#374151' }}>
+                    <svg width="24" height="16" viewBox="0 0 48 32" role="img" aria-label="Philippines">
+                      <path fill="#0038a8" d="M0 0h48v16H0z" />
+                      <path fill="#ce1126" d="M0 16h48v16H0z" />
+                      <path fill="#fff" d="M0 0l28 16L0 32z" />
+                      <g fill="#fcd116" stroke="#fcd116">
+                        <circle cx="10" cy="16" r="3" />
+                        <path d="M10 10v12M4 16h12M6 12l8 8M6 20l8-8" strokeWidth="1.3" />
+                        <path stroke="none" d="m3 3 .6 1.8h1.9L4 5.9l.6 1.8L3 6.6l-1.6 1.1L2 5.9.5 4.8h1.9zM3 25l.6 1.8h1.9L4 27.9l.6 1.8L3 28.6l-1.6 1.1.6-1.8-1.5-1.1h1.9zM22 13l.6 1.8h1.9L23 15.9l.6 1.8-1.6-1.1-1.6 1.1.6-1.8-1.5-1.1h1.9z" />
+                      </g>
+                    </svg>
+                    <span>+63</span>
+                  </span>
+                  <input
+                    id="registration-mobile"
+                    aria-label="Philippine mobile number, 10 digits without country code"
+                    aria-describedby="registration-mobile-help"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    maxLength={10}
+                    pattern="9[0-9]{9}"
+                    title="Enter 10 digits starting with 9, without +63 or the leading 0"
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+                    placeholder="9123456789"
+                    style={{ flex: 1, minWidth: 0, width: '100%', padding: '0.75rem 0.9rem', border: 'none', background: 'transparent', fontSize: '0.9rem', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <span id="registration-mobile-help" style={{ fontSize: '0.725rem', color: '#9ca3af', display: 'block', marginTop: '0.25rem' }}>
+                  Enter 10 digits starting with 9, without the leading 0. For order tracking and delivery updates.
                 </span>
               </div>
 
