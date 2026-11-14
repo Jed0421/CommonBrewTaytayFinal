@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import './CommonBotDrawer.css';
 import { Bot, X, Banknote, AlertTriangle, Trophy, Send, RotateCcw, Copy, Check, Sparkles, Coffee, MessageSquare } from 'lucide-react';
 
 interface Props {
@@ -16,11 +18,9 @@ interface Message {
 export const CommonBotDrawer: React.FC<Props> = ({ isOpen, onClose, userName }) => {
   const initialGreeting = `Hello ${userName || 'there'}! I am **CommonBot**, your AI assistant for CommonBrew Taytay. ☕
 
-I can help you just like ChatGPT:
-- 📊 Analyze live sales, revenue metrics & transaction trends
-- 📦 Check current ingredient stock levels & critical inventory alerts
-- ☕ Answer any coffee brewing questions, recipes, or barista techniques
-- 💡 Provide business insights, math, writing, and general answers
+I can help with sales, inventory, recipes, and business questions.
+
+**Shop hours:** 11:00 AM–9:00 PM daily.
 
 How can I help you today?`;
 
@@ -101,7 +101,7 @@ How can I help you today?`;
   return (
     <>
       <div className="ai-overlay" onClick={onClose}></div>
-      <div className={`ai-panel ${isOpen ? 'open' : ''}`}>
+      <div className={`ai-panel admin-commonbot ${isOpen ? 'open' : ''}`}>
         <div className="ai-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', background: 'linear-gradient(135deg, #1e1b18 0%, #2a241e 100%)', color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -122,7 +122,7 @@ How can I help you today?`;
             </div>
             <div>
               <p className="ai-title" style={{ margin: 0, fontWeight: 700, fontSize: '0.95rem', color: '#fff' }}>CommonBot AI</p>
-              <p className="ai-subtitle" style={{ margin: 0, fontSize: '0.72rem', color: '#9ca3af' }}>ChatGPT-style AI • CommonBrew POS</p>
+              <p className="ai-subtitle" style={{ margin: 0, fontSize: '0.72rem', color: '#9ca3af' }}>Your CommonBrew assistant</p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -169,13 +169,24 @@ How can I help you today?`;
                   border: m.sender === 'bot' ? '1px solid var(--border)' : 'none',
                   borderRadius: m.sender === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                   padding: '0.75rem 1rem',
-                  maxWidth: '85%'
+                  maxWidth: m.sender === 'bot' ? '100%' : '90%',
+                  minWidth: 0,
+                  flex: m.sender === 'bot' ? 1 : undefined
                 }}
               >
                 {m.sender === 'bot' ? (
                   <>
                     <div className="ai-markdown">
-                      <ReactMarkdown>{m.text}</ReactMarkdown>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          table: ({ node, ...props }) => (
+                            <div className="commonbot-table-scroll" role="region" aria-label="Response table" tabIndex={0}>
+                              <table {...props} />
+                            </div>
+                          )
+                        }}
+                      >{m.text}</ReactMarkdown>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem', paddingTop: '0.3rem', borderTop: '1px solid var(--border)' }}>
                       <button
@@ -258,7 +269,7 @@ How can I help you today?`;
           <input
             type="text"
             className="ai-input"
-            placeholder="Ask CommonBot anything (sales, stock, coffee, general questions)..."
+            placeholder="Ask CommonBot…"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}

@@ -3314,16 +3314,19 @@ app.post('/api/chatbot/ask', chatbotLimiter, requireStaff, async (req, res) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const todaySales = validTxns.filter(t => t.createdAt.startsWith(todayStr)).reduce((sum, t) => sum + t.totalAmount, 0);
 
-    const systemPrompt = `You are CommonBot, an advanced, highly intelligent AI assistant for CommonBrew Taytay POS — designed to respond with the exact intelligence, eloquence, depth, and helpfulness of ChatGPT.
+    const systemPrompt = `You are CommonBot, the helpful AI assistant for CommonBrew Taytay POS. Identify yourself only as CommonBot. Do not mention ChatGPT or compare yourself to other assistants.
 
 You are an expert on coffee brewing science, barista techniques, cafe management, inventory optimization, sales analysis, customer service, and general world knowledge (business, math, writing, technology, creative ideas, etc.).
 
-CONVERSATION & RESPONSE STYLE (LIKE CHATGPT):
-1. **Articulate, Insightful & Engaging**: Provide comprehensive, thoughtful, clear, and well-reasoned answers just like ChatGPT.
-2. **Markdown Formatting**: Use clean markdown formatting (e.g. bold key terms, clear bullet points, numbered lists, subheadings ###, and tables when comparing data).
+CONVERSATION & RESPONSE STYLE:
+1. **Articulate, Insightful & Engaging**: Lead with a direct answer. Keep routine answers concise and expand only when asked.
+2. **Markdown Formatting**: Use short paragraphs separated by blank lines, short ### headings, and bullets with bold labels. Prefer lists for transactions (reference, amount, type, status), not wide tables. Only use a Markdown table when explicitly requested; include a header and separator row. Avoid long introductions, repeated summaries, and dense blocks of text.
 3. **Versatile Knowledge**: You can answer ANY question the user asks — from cafe operations and product comparisons to general knowledge, coffee history, recipes, math, coding, staff tips, or friendly conversational banter.
 4. **Live POS Grounding**: When discussing CommonBrew Taytay, seamlessly reference the live database provided below with exact figures in Philippine Peso (₱).
 5. **No Monotonous Scripts**: Speak naturally. Do not repeat robotic introductory greetings on every single turn. Address the user respectfully as ${userName}.
+
+SHOP HOURS:
+${storeInfo.hours} (Asia/Manila, Philippine time). Opening time is 11:00 AM; closing time is 9:00 PM. Use these hours for shop-hours questions; do not infer hours from transaction activity.
 
 LIVE SYSTEM DATABASE:
 [CURRENT ACTIVE PRODUCTS]
@@ -3345,7 +3348,7 @@ ${recentTxns}`;
     const convoHistory = Array.isArray(history) ? history : (Array.isArray(reqMessages) ? reqMessages : []);
     const lowStock = inventory.filter(i => i.currentStock <= i.criticalLevel);
 
-    const dynamicFallback = `### Hello ${userName}! ☕\n\nI am **CommonBot**, your AI Assistant for CommonBrew Taytay. Here is a live overview of the store:\n\n- **Today's Total Sales**: ₱${todaySales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}\n- **Active Available Products**: ${products.filter(p => p.isAvailable).length} menu items\n- **Low Stock Ingredients**: ${lowStock.length > 0 ? lowStock.map(i => `**${i.name}** (${i.currentStock} ${i.unit} left)`).join(', ') : 'All ingredients are well-stocked'}\n- **Active Online Orders**: ${onlineOrders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length} orders in progress\n\nFeel free to ask me any questions about our sales, product performance, recipes, or inventory!`;
+    const dynamicFallback = `### Hello ${userName}! ☕\n\nI am **CommonBot**, your AI Assistant for CommonBrew Taytay. Here is a live overview of the store:\n\n- **Today's Total Sales**: ₱${todaySales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}\n- **Shop Hours**: ${storeInfo.hours} (Philippine time)\n- **Active Available Products**: ${products.filter(p => p.isAvailable).length} menu items\n- **Low Stock Ingredients**: ${lowStock.length > 0 ? lowStock.map(i => `**${i.name}** (${i.currentStock} ${i.unit} left)`).join(', ') : 'All ingredients are well-stocked'}\n- **Active Online Orders**: ${onlineOrders.filter(o => o.status !== 'Completed' && o.status !== 'Cancelled').length} orders in progress\n\nFeel free to ask me any questions about our sales, product performance, recipes, or inventory!`;
 
     const reply = await generateAIChatResponse(systemPrompt, convoHistory, question, dynamicFallback);
     return res.json({ reply });

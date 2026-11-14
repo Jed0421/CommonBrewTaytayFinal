@@ -1,0 +1,26 @@
+.ai-panel.admin-commonbot {
+  width: min(520px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+}
+.admin-commonbot .ai-header,
+.admin-commonbot .ai-suggestions,
+.admin-commonbot .ai-input-wrap { flex-shrink: 0; }
+.admin-commonbot .ai-messages { min-height: 0; overflow-x: hidden; }
+.admin-commonbot .ai-msg { width: 100%; min-width: 0; flex-shrink: 0; }
+.admin-commonbot .msg-bubble { overflow-wrap: anywhere; text-align: left; }
+.admin-commonbot .ai-markdown { line-height: 1.7; }
+.admin-commonbot .ai-markdown p { margin-bottom: .8rem; }
+.admin-commonbot .ai-markdown li { margin-bottom: .45rem; }
+.admin-commonbot .ai-markdown :is(h1, h2, h3, h4) { margin: 1rem 0 .5rem; line-height: 1.4; }
+.admin-commonbot .ai-markdown > :first-child { margin-top: 0; }
+.admin-commonbot .ai-markdown > :last-child { margin-bottom: 0; }
+.admin-commonbot .ai-markdown img { max-width: 100%; height: auto; }
+.admin-commonbot .commonbot-table-scroll { max-width: 100%; overflow-x: auto; margin: .75rem 0; }
+.admin-commonbot .ai-markdown table { min-width: 360px; margin: 0; }
+.admin-commonbot .ai-markdown :is(th, td) { vertical-align: top; padding: .55rem .65rem; }
+.admin-commonbot .ai-input { min-width: 0; }
+@media (max-width: 480px) {
+  .admin-commonbot .ai-msg.bot { flex-direction: column; }
+  .admin-commonbot .ai-msg.bot .msg-bubble { width: 100%; box-sizing: border-box; }
+}
