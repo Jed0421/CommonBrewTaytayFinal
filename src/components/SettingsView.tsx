@@ -4,6 +4,40 @@ import { Mail, Phone, ShieldCheck, CheckCircle2, AlertCircle, Edit, Key, Lock, U
 import { useRealtimeSync } from '../lib/realtimeSync';
 import { LegalDocumentsModal } from './LegalDocumentsModal';
 
+
+const staffPhoneDigits = (value: string) => {
+  const digits = value.replace(/[^0-9]/g, '');
+  if (digits.startsWith('63') && digits.length === 12) return digits.slice(2);
+  if (digits.startsWith('0') && digits.length === 11) return digits.slice(1);
+  return digits;
+};
+
+const StaffPhoneInput = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+  <div>
+    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', background: 'var(--surface)' }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem', borderRight: '1px solid var(--border)', flexShrink: 0 }}>
+                    <svg width="24" height="16" viewBox="0 0 48 32" role="img" aria-label="Philippines">
+                      <path fill="#0038a8" d="M0 0h48v16H0z" />
+                      <path fill="#ce1126" d="M0 16h48v16H0z" />
+                      <path fill="#fff" d="M0 0l28 16L0 32z" />
+                      <g fill="#fcd116" stroke="#fcd116">
+                        <circle cx="10" cy="16" r="3" />
+                        <path d="M10 10v12M4 16h12M6 12l8 8M6 20l8-8" strokeWidth="1.3" />
+                        <path stroke="none" d="m3 3 .6 1.8h1.9L4 5.9l.6 1.8L3 6.6l-1.6 1.1L2 5.9.5 4.8h1.9zM3 25l.6 1.8h1.9L4 27.9l.6 1.8L3 28.6l-1.6 1.1.6-1.8-1.5-1.1h1.9zM22 13l.6 1.8h1.9L23 15.9l.6 1.8-1.6-1.1-1.6 1.1.6-1.8-1.5-1.1h1.9z" />
+                      </g>
+                    </svg>
+        <span>+63</span>
+      </span>
+      <input type="tel" inputMode="numeric" autoComplete="tel-national" className="form-input"
+        aria-label="Philippine mobile number, 10 digits without country code"
+        maxLength={10} pattern="9[0-9]{9}" title="Enter 10 digits starting with 9, without +63 or the leading 0"
+        value={value} onChange={e => onChange(e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+        placeholder="9123456789" style={{ flex: 1, minWidth: 0, border: 'none', borderRadius: 0 }} />
+    </div>
+    <small style={{ color: 'var(--text-2)' }}>10 digits starting with 9, without the leading 0.</small>
+  </div>
+);
+
 interface SettingsViewProps {
   currentUser?: User | null;
   onUserUpdated?: (updated: User) => void;
@@ -206,6 +240,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
       setOtpError('Please enter a valid Gmail / Email address first.');
       return;
     }
+    if (contactNumber && !/^9[0-9]{9}$/.test(contactNumber)) {
+      setOtpError('Enter a 10-digit mobile number starting with 9.');
+      return;
+    }
+
     if (emailError) {
       setOtpError('Email is already used');
       return;
@@ -294,8 +333,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
         body: JSON.stringify({
           fullName: fullName.trim(),
           username: username.trim(),
-          contactNumber: contactNumber.trim(),
-          phone: contactNumber.trim(),
+          contactNumber: contactNumber ? `+63${contactNumber}` : '',
+          phone: contactNumber ? `+63${contactNumber}` : '',
           email: email.trim(),
           password,
           role: 'Cashier'
@@ -324,7 +363,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
     setEditingUser(u);
     setEditFullName(u.fullName || '');
     setEditUsername(u.username || '');
-    setEditContactNumber(u.phone || '');
+    setEditContactNumber(staffPhoneDigits(u.phone || ''));
     setEditEmail(u.email || '');
     setEditOriginalEmail(u.email || '');
     setEditEmailError('');
@@ -354,6 +393,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
       setEditOtpError('Please enter a valid Gmail / Email address.');
       return;
     }
+    if (editContactNumber && !/^9[0-9]{9}$/.test(editContactNumber)) {
+      setEditError('Enter a 10-digit mobile number starting with 9.');
+      return;
+    }
+
     if (editEmailError) {
       setEditOtpError('Email is already used');
       return;
@@ -451,8 +495,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
         body: JSON.stringify({
           fullName: editFullName.trim(),
           username: editUsername.trim(),
-          contactNumber: editContactNumber.trim(),
-          phone: editContactNumber.trim(),
+          contactNumber: editContactNumber ? `+63${editContactNumber}` : '',
+          phone: editContactNumber ? `+63${editContactNumber}` : '',
           email: editEmail.trim(),
           role: editingUser.role === 'Administrator' ? 'Administrator' : 'Cashier',
           password: editNewPassword.trim() ? editNewPassword.trim() : undefined
@@ -854,13 +898,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Phone size={14} color="#059669" /> Contact Number
                 </label>
-                <input
-                  type="tel"
-                  className="form-input"
-                  value={contactNumber}
-                  onChange={(e) => setContactNumber(e.target.value)}
-                  placeholder="e.g. 09123456789"
-                />
+                <StaffPhoneInput value={contactNumber} onChange={setContactNumber} />
               </div>
 
               {/* Gmail / Email Address with OTP verification */}
@@ -1202,13 +1240,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Phone size={14} color="#059669" /> Contact Number
                 </label>
-                <input
-                  type="tel"
-                  className="form-input"
-                  value={editContactNumber}
-                  onChange={(e) => setEditContactNumber(e.target.value)}
-                  placeholder="e.g. 09123456789"
-                />
+                <StaffPhoneInput value={editContactNumber} onChange={setEditContactNumber} />
               </div>
 
               {/* Gmail / Email Address with verification OTP if changed */}
