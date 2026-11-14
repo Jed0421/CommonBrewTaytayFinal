@@ -8,6 +8,10 @@ on:
         description: Preview without emailing
         type: boolean
         default: true
+      report_date:
+        description: Philippine business date (YYYY-MM-DD), blank for today
+        type: string
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -26,6 +30,7 @@ jobs:
       - run: npm ci --include=dev
       - name: Generate report
         env:
+          DAILY_SALES_REPORT_DATE: ${{ inputs.report_date }}
           PREVIEW: ${{ inputs.preview }}
           DAILY_SALES_REPORT_EMAIL: ${{ secrets.DAILY_SALES_REPORT_EMAIL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

@@ -108,10 +108,23 @@ function formatReport(date: string, report: SalesReport) {
 async function main() {
   if (!supabase) throw new Error('Configure the Supabase server credentials.');
   const dryRun = process.argv.includes('--dry-run');
-  const date = dateFormatter.format(new Date());
+  const now = new Date();
+  const today = dateFormatter.format(now);
+  const todayClosing = new Date(today + 'T21:00:00+08:00');
+  // A scheduled run delayed past midnight still belongs to the last closed business day.
+  const scheduledDate = now < todayClosing
+    ? dateFormatter.format(new Date(todayClosing.getTime() - 24 * 60 * 60 * 1000))
+    : today;
+  const date = process.env.DAILY_SALES_REPORT_DATE?.trim() ||
+    (process.env.GITHUB_EVENT_NAME === 'schedule' ? scheduledDate : today);
   const start = new Date(date + 'T00:00:00+08:00');
   const closing = new Date(date + 'T21:00:00+08:00');
-  if (!dryRun && Date.now() < closing.getTime()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(start.getTime()) ||
+      dateFormatter.format(start) !== date || date > today) {
+    throw new Error('Choose a valid report date in YYYY-MM-DD format, no later than today.');
+  }
+  console.log('Report business date (Philippine time): ' + date);
+  if (!dryRun && now < closing) {
     throw new Error('The report can be emailed at or after 9:00 PM Philippine time. Use --dry-run to preview.');
   }
 
