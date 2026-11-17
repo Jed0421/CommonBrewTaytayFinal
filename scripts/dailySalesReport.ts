@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import { reportSchedule } from './reportSchedule.ts';
+import { setTimeout as delay } from 'node:timers/promises';
 import { commonBrewEmail, emailEscape, emailParagraph } from '../src/lib/commonBrewEmail.ts';
 import { supabase } from '../src/lib/supabase.ts';
 import { sendRealEmail } from '../src/lib/sendEmail.ts';
@@ -108,6 +110,18 @@ function formatReport(date: string, report: SalesReport) {
 async function main() {
   if (!supabase) throw new Error('Configure the Supabase server credentials.');
   const dryRun = process.argv.includes('--dry-run');
+  const waitForClosing = process.argv.includes('--wait-for-closing');
+  if (waitForClosing && process.env.DAILY_SALES_REPORT_DATE?.trim()) {
+    throw new Error('Do not set DAILY_SALES_REPORT_DATE on the scheduled job.');
+  }
+  if (waitForClosing && !dryRun) {
+    const schedule = reportSchedule(new Date(), true);
+    console.log('Scheduled closing: ' + schedule.closing.toISOString() + ' (9:00 PM Asia/Manila)');
+    // Check the clock again after each bounded wait; never query the report before closing.
+    while (Date.now() < schedule.closing.getTime()) {
+      await delay(Math.min(30000, schedule.closing.getTime() - Date.now()));
+    }
+  }
   const now = new Date();
   const today = dateFormatter.format(now);
   const todayClosing = new Date(today + 'T21:00:00+08:00');
@@ -124,6 +138,7 @@ async function main() {
     throw new Error('Choose a valid report date in YYYY-MM-DD format, no later than today.');
   }
   console.log('Report business date (Philippine time): ' + date);
+  console.log('Run started: ' + now.toISOString() + '; seconds after closing: ' + Math.max(0, Math.floor((now.getTime() - closing.getTime()) / 1000)));
   if (!dryRun && now < closing) {
     throw new Error('The report can be emailed at or after 9:00 PM Philippine time. Use --dry-run to preview.');
   }
@@ -145,7 +160,7 @@ async function main() {
   const resendConfigured = Boolean(process.env.RESEND_API_KEY?.trim());
   if (missingGmail.length && !smtpConfigured && !resendConfigured) {
     throw new Error(
-      'No email provider configured in GitHub Actions. Missing Gmail API secrets: ' +
+      'No email provider configured for the report job. Missing Gmail API secrets: ' +
       missingGmail.join(', ') + '. Alternatively configure SMTP_PASS or RESEND_API_KEY.'
     );
   }
@@ -158,6 +173,7 @@ async function main() {
   if (claimError) throw claimError;
 
   // Keep the claim on an uncertain outcome to prevent a duplicate email.
+  console.log('Submitting report email at ' + new Date().toISOString());
   const result = await sendRealEmail(recipient, 'CommonBrew Daily Sales Report | ' + date, report.html, report.text);
   if (!result.sent) throw new Error('Email provider did not confirm delivery. Check provider logs before clearing the report run.');
   const { error: markError } = await supabase.from('daily_sales_report_runs')

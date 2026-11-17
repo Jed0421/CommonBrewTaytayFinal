@@ -1,7 +1,9 @@
 name: Daily sales report
 on:
   schedule:
-    - cron: '0 13 * * *'
+    # Start at 7:17 PM PHT, with an 8:17 PM backup trigger.
+    # The script waits until 9 PM; concurrency and the database claim prevent duplicates.
+    - cron: '17 11,12 * * *'
   workflow_dispatch:
     inputs:
       preview:
@@ -20,7 +22,7 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 130
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,6 +48,8 @@ jobs:
           if [ "$PREVIEW" = "true" ]; then
             npx --no-install tsx scripts/dailySalesReport.ts --dry-run >/dev/null
             echo "Report generated successfully."
+          elif [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            npx --no-install tsx scripts/dailySalesReport.ts --wait-for-closing
           else
             npx --no-install tsx scripts/dailySalesReport.ts
           fi
