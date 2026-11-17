@@ -1,3 +1,4 @@
+import { createClockSkewRetryFetch } from './supabaseRetry.ts';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Retrieve Supabase environment variables from either process.env (server) or import.meta.env (client Vite)
@@ -37,6 +38,7 @@ let supabaseInstance: SupabaseClient | null = null;
 if (supabaseUrl && supabaseServiceKey) {
   try {
     supabaseInstance = createClient(supabaseUrl, supabaseServiceKey, {
+      ...(isServer ? { global: { fetch: createClockSkewRetryFetch() } } : {}),
       auth: {
         persistSession: false,
         autoRefreshToken: false,
