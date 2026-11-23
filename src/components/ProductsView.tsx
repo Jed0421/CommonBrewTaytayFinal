@@ -56,6 +56,8 @@ export const ProductsView: React.FC = () => {
 
   const [productType, setProductType] = useState<'Drink' | 'Food'>('Drink');
   const [upsizePrice, setUpsizePrice] = useState('130');
+  const [upsizeRecipeItems, setUpsizeRecipeItems] = useState<{ inventoryItemId: string; quantity: number }[]>([]);
+  const [recipeSize, setRecipeSize] = useState<'16oz' | '22oz'>('16oz');
   const [recipeItems, setRecipeItems] = useState<{ inventoryItemId: string; quantity: number }[]>([]);
   const [archiveTarget, setArchiveTarget] = useState<Product | null>(null);
   const [toastMessage, setToastMessage] = useState('');
@@ -174,7 +176,11 @@ export const ProductsView: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
     setProductType('Drink');
     setUpsizePrice('130');
+    setUpsizeRecipeItems([]);
     setRecipeItems([{ inventoryItemId: inventory[0]?.id || '', quantity: 18 }]);
+    setRecipeSize('16oz');
+    setUpsizeRecipeItems([]);
+    setRecipeSize('16oz');
     setShowModal(true);
   };
 
@@ -188,21 +194,35 @@ export const ProductsView: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
     setProductType(p.productType);
     setUpsizePrice(p.upsizePrice ? p.upsizePrice.toString() : '');
+    setUpsizeRecipeItems((p.upsizeRecipes || []).map(r => ({ inventoryItemId: r.inventoryItemId, quantity: r.quantity })));
     setRecipeItems(p.recipes ? p.recipes.map(r => ({ inventoryItemId: r.inventoryItemId, quantity: r.quantity })) : []);
     setShowModal(true);
   };
 
+  const activeRecipeItems = productType === 'Drink' && recipeSize === '22oz' ? upsizeRecipeItems : recipeItems;
+  const setActiveRecipeItems = productType === 'Drink' && recipeSize === '22oz' ? setUpsizeRecipeItems : setRecipeItems;
+
   const handleAddRecipeRow = () => {
     if (inventory.length === 0) return;
-    setRecipeItems([...recipeItems, { inventoryItemId: inventory[0].id, quantity: 10 }]);
+    setActiveRecipeItems([...activeRecipeItems, { inventoryItemId: inventory[0].id, quantity: 10 }]);
   };
 
   const handleRemoveRecipeRow = (index: number) => {
-    setRecipeItems(recipeItems.filter((_, i) => i !== index));
+    setActiveRecipeItems(activeRecipeItems.filter((_, i) => i !== index));
   };
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (productType === 'Drink' && Number(upsizePrice) > 0 && upsizeRecipeItems.length === 0) {
+      alert('Add the full 22oz recipe before saving a drink with a 22oz price.');
+      setRecipeSize('22oz');
+      return;
+    }
+    if ([...recipeItems, ...(productType === 'Drink' ? upsizeRecipeItems : [])].some(r => !r.inventoryItemId || !Number.isFinite(r.quantity) || r.quantity <= 0)) {
+      alert('Choose an ingredient and enter a quantity greater than zero for every recipe row.');
+      return;
+    }
 
     const payload = {
       name,
@@ -211,7 +231,8 @@ export const ProductsView: React.FC = () => {
       imageUrl,
       productType,
       upsizePrice: upsizePrice ? Number(upsizePrice) : null,
-      recipes: recipeItems
+      recipes: recipeItems,
+      upsizeRecipes: productType === 'Drink' ? upsizeRecipeItems : []
     };
 
     try {
@@ -761,24 +782,34 @@ export const ProductsView: React.FC = () => {
               </div>
 
               {/* Recipe builder */}
+              {productType === 'Drink' && (
+                <div style={{ marginTop: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    {(['16oz', '22oz'] as const).map(size => (
+                      <button key={size} type="button" className={recipeSize === size ? 'btn-primary' : 'btn-outline'} aria-pressed={recipeSize === size} onClick={() => setRecipeSize(size)}>{size} Recipe</button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: 'var(--text-2)' }}>Enter the full ingredient quantities for each size. For 22oz, use the larger measurements and the correct 22oz cup; these replace the 16oz recipe, rather than adding to it.</p>
+                </div>
+              )}
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <label className="form-label" style={{ margin: 0 }}>Recipe Ingredients Mapping</label>
+                  <label className="form-label" style={{ margin: 0 }}>{productType === 'Drink' ? recipeSize + ' Recipe Ingredients' : 'Recipe Ingredients Mapping'}</label>
                   <button type="button" className="btn-outline btn-sm" onClick={handleAddRecipeRow}>
                     + Ingredient
                   </button>
                 </div>
 
-                {recipeItems.map((r, idx) => (
+                {activeRecipeItems.map((r, idx) => (
                   <div key={idx} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
                     <select
                       className="form-select"
                       style={{ flex: 1 }}
                       value={r.inventoryItemId}
                       onChange={(e) => {
-                        const updated = [...recipeItems];
+                        const updated = activeRecipeItems.map(item => ({ ...item }));
                         updated[idx].inventoryItemId = e.target.value;
-                        setRecipeItems(updated);
+                        setActiveRecipeItems(updated);
                       }}
                     >
                       {inventory.map(inv => (
@@ -792,10 +823,14 @@ export const ProductsView: React.FC = () => {
                       style={{ width: '90px' }}
                       value={r.quantity}
                       onChange={(e) => {
-                        const updated = [...recipeItems];
+                        const updated = activeRecipeItems.map(item => ({ ...item }));
                         updated[idx].quantity = Number(e.target.value);
-                        setRecipeItems(updated);
+                        setActiveRecipeItems(updated);
                       }}
+                      min="0.001"
+                      step="any"
+                      required
+                      aria-label="Ingredient quantity"
                       placeholder="Qty"
                     />
 
