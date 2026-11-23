@@ -13,7 +13,7 @@ export async function sendExpirationAlerts() {
   const today = philippineDate();
   const { data: items, error } = await supabase.from('inventory')
     .select('id,name,expiration_date,current_stock,unit').eq('is_archived', false)
-    .gt('current_stock', 0).lt('expiration_date', today);
+    .eq('expiration_date_is_demo', false).gt('current_stock', 0).lt('expiration_date', today);
   if (error) throw error;
   if (!items?.length) return;
   const { data: admins, error: adminError } = await supabase.from('users')

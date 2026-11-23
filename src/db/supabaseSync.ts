@@ -158,6 +158,7 @@ export async function hydrateFromSupabase(state: {
           existing.criticalLevel = Number(inv.critical_level);
           existing.category = inv.category || existing.category;
           existing.unitCost = inv.unit_cost !== null ? Number(inv.unit_cost) : existing.unitCost;
+          existing.expirationDateIsDemo = Boolean(inv.expiration_date_is_demo);
           existing.expirationDate = inv.expiration_date || null;
           existing.supplierName = inv.supplier_name || existing.supplierName;
           existing.isArchived = inv.is_archived !== undefined ? inv.is_archived : existing.isArchived;
@@ -170,6 +171,7 @@ export async function hydrateFromSupabase(state: {
             criticalLevel: Number(inv.critical_level),
             category: inv.category,
             unitCost: Number(inv.unit_cost) || 0,
+            expirationDateIsDemo: Boolean(inv.expiration_date_is_demo),
             expirationDate: inv.expiration_date || null,
             supplierName: inv.supplier_name,
             isArchived: inv.is_archived || false,
@@ -858,6 +860,7 @@ export function setupSupabaseRealtime(
                   existing.criticalLevel = newRow.critical_level !== undefined ? Number(newRow.critical_level) : existing.criticalLevel;
                   existing.category = newRow.category ?? existing.category;
                   existing.unitCost = newRow.unit_cost !== undefined ? Number(newRow.unit_cost) : existing.unitCost;
+                  existing.expirationDateIsDemo = Boolean(newRow.expiration_date_is_demo);
                   existing.expirationDate = newRow.expiration_date || null;
                   existing.supplierName = newRow.supplier_name ?? existing.supplierName;
                   existing.isArchived = newRow.is_archived !== undefined ? newRow.is_archived : existing.isArchived;
@@ -872,6 +875,7 @@ export function setupSupabaseRealtime(
                     criticalLevel: Number(newRow.critical_level) || 0,
                     category: newRow.category,
                     unitCost: Number(newRow.unit_cost) || 0,
+                    expirationDateIsDemo: Boolean(newRow.expiration_date_is_demo),
                     expirationDate: newRow.expiration_date || null,
                     supplierName: newRow.supplier_name,
                     isArchived: newRow.is_archived || false,
@@ -1164,7 +1168,8 @@ export function startContinuousSupabaseSync(
               criticalLevel,
               category: inv.category,
               unitCost: Number(inv.unit_cost) || 0,
-              expirationDate: inv.expiration_date || null,
+              expirationDateIsDemo: Boolean(inv.expiration_date_is_demo),
+            expirationDate: inv.expiration_date || null,
             supplierName: inv.supplier_name,
               isArchived: Boolean(inv.is_archived),
               updatedAt: inv.updated_at || new Date().toISOString()

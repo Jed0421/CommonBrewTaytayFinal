@@ -127,6 +127,7 @@ interface InventoryRecord {
   criticalLevel: number;
   category?: string;
   unitCost?: number;
+  expirationDateIsDemo?: boolean;
   expirationDate?: string | null;
   supplierName?: string;
   isArchived?: boolean;
