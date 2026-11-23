@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { startExpirationEmailWorker } from './src/lib/expirationEmail.ts';
 import { cashPaymentByOrderType, type OnlinePaymentMethod, type OrderType } from './src/types.ts';
 import { startCriticalStockEmailWorker } from './src/lib/criticalStockEmail.ts';
 import { commonBrewEmail, emailEscape, emailMoney, emailParagraph } from './src/lib/commonBrewEmail.ts';
@@ -126,6 +127,7 @@ interface InventoryRecord {
   criticalLevel: number;
   category?: string;
   unitCost?: number;
+  expirationDate?: string | null;
   supplierName?: string;
   isArchived?: boolean;
   updatedAt?: string;
@@ -2797,6 +2799,7 @@ app.get('/api/inventory', requireStaff, (req, res) => {
       ...i,
       category: i.category || 'General',
       unitCost: i.unitCost || 0,
+      expirationDate: i.expirationDate || null,
       supplierName: i.supplierName || 'General Supplier',
       isLowStock: isLow,
       statusLabel: isLow ? 'Low Stock' : 'Good',
@@ -2864,9 +2867,12 @@ app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
   res.json({ success: true, newStock: item.currentStock });
 });
 
-app.post('/api/inventory/create', requireStaff, (req, res) => {
+app.post('/api/inventory/create', requireStaff, async (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
-  const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName } = req.body;
+  const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName, expirationDate } = req.body;
+  if (expirationDate && (!/^\d{4}-\d{2}-\d{2}$/.test(expirationDate) || !Number.isFinite(Date.parse(expirationDate)) || new Date(expirationDate).toISOString().slice(0, 10) !== expirationDate)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid expiration date.' });
+  }
   const newItem: InventoryRecord = {
     id: `inv-${Date.now()}`,
     name,
@@ -2875,17 +2881,17 @@ app.post('/api/inventory/create', requireStaff, (req, res) => {
     criticalLevel: Number(criticalLevel) || 10,
     category: category || 'General',
     unitCost: Number(unitCost) || 0,
+    expirationDate: expirationDate || null,
     supplierName: supplierName || 'Local Supplier',
     updatedAt: new Date().toISOString()
   };
-  inventory.push(newItem);
+
 
   // Sync to Supabase
-  (async () => {
-    try {
+  try {
       const { supabase, isSupabaseConfigured } = await import('./src/lib/supabase.ts');
       if (isSupabaseConfigured() && supabase) {
-        await supabase.from('inventory').insert({
+        const { error: saveError } = await supabase.from('inventory').insert({
           id: newItem.id,
           name: newItem.name,
           category: newItem.category,
@@ -2893,16 +2899,21 @@ app.post('/api/inventory/create', requireStaff, (req, res) => {
           unit_cost: newItem.unitCost,
           current_stock: newItem.currentStock,
           critical_level: newItem.criticalLevel,
+          expiration_date: newItem.expirationDate,
           supplier_name: newItem.supplierName,
           is_archived: false,
           created_at: newItem.updatedAt,
           updated_at: newItem.updatedAt
         });
+        if (saveError) throw saveError;
       }
     } catch (err) {
       console.error('Supabase inventory insert error:', err);
+      return res.status(500).json({success: false, message: 'Could not save material. Check the inventory expiration database migration.'});
     }
-  })();
+
+
+  inventory.push(newItem);
 
   // Initial stock-in log
   if (newItem.currentStock > 0) {
@@ -2920,12 +2931,17 @@ app.post('/api/inventory/create', requireStaff, (req, res) => {
   res.json({ success: true, item: newItem });
 });
 
-app.put('/api/inventory/:id', requireStaff, (req, res) => {
+app.put('/api/inventory/:id', requireStaff, async (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
 
-  const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName } = req.body;
+  const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName, expirationDate } = req.body;
+  if (expirationDate && (!/^\d{4}-\d{2}-\d{2}$/.test(expirationDate) || !Number.isFinite(Date.parse(expirationDate)) || new Date(expirationDate).toISOString().slice(0, 10) !== expirationDate)) {
+    return res.status(400).json({ success: false, message: 'Enter a valid expiration date.' });
+  }
+  const originalItem = { ...item };
+  if (expirationDate !== undefined) item.expirationDate = expirationDate || null;
   item.name = name ?? item.name;
   item.unit = unit ?? item.unit;
   item.currentStock = currentStock !== undefined ? Number(currentStock) : item.currentStock;
@@ -2939,25 +2955,28 @@ app.put('/api/inventory/:id', requireStaff, (req, res) => {
   syncInventoryUpdateToCloudSql(item.id, item.currentStock).catch(err => console.error('Cloud SQL inv sync error:', err));
   
   // Sync inventory updates to Supabase
-  (async () => {
-    try {
+  try {
       const { supabase, isSupabaseConfigured } = await import('./src/lib/supabase.ts');
       if (isSupabaseConfigured() && supabase) {
-        await supabase.from('inventory').update({
+        const { error: saveError } = await supabase.from('inventory').update({
           name: item.name,
           category: item.category,
           unit: item.unit,
           unit_cost: item.unitCost,
           current_stock: item.currentStock,
           critical_level: item.criticalLevel,
+          expiration_date: item.expirationDate,
           supplier_name: item.supplierName,
           updated_at: item.updatedAt
         }).eq('id', item.id);
+        if (saveError) throw saveError;
       }
     } catch (err) {
+      Object.assign(item, originalItem);
       console.error('Supabase inventory update error:', err);
+      return res.status(500).json({success: false, message: 'Could not save material. Check the inventory expiration database migration.'});
     }
-  })();
+
 
   res.json({ success: true, item });
 });
@@ -3752,6 +3771,7 @@ async function startServer() {
     console.log(`CommonBrew POS Server running at http://0.0.0.0:${PORT}`);
 
     startCriticalStockEmailWorker();
+    startExpirationEmailWorker();
 
     // Asynchronously synchronize data in background without blocking server HTTP requests
     (async () => {

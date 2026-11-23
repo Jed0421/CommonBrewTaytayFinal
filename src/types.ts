@@ -39,6 +39,7 @@ export interface InventoryItem {
   criticalLevel: number;
   category?: MaterialCategory;
   unitCost?: number;
+  expirationDate?: string | null;
   supplierName?: string;
   updatedAt?: string;
   isLowStock?: boolean;

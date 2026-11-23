@@ -27,6 +27,8 @@ export const InventoryView: React.FC = () => {
   const [addQty, setAddQty] = useState('');
   const [note, setNote] = useState('');
 
+  const [newExpiration, setNewExpiration] = useState('');
+  const [editExpiration, setEditExpiration] = useState('');
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newItemName, setNewItemName] = useState('');
@@ -135,6 +137,7 @@ export const InventoryView: React.FC = () => {
           unit: newItemUnit,
           category: newItemCategory,
           unitCost: Number(newItemCost),
+          expirationDate: newExpiration || null,
           supplierName: newItemSupplier,
           currentStock: Number(newItemStock),
           criticalLevel: Number(newItemCritical)
@@ -143,11 +146,14 @@ export const InventoryView: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setShowCreateModal(false);
+        setNewExpiration('');
         setNewItemName('');
         setNewItemUnit('g');
         setNewItemStock('1000');
         setNewItemCost('150');
         fetchInventory();
+      } else {
+        alert(data.message || 'Error saving ingredient');
       }
     } catch (e) {
       alert('Error creating raw material ingredient');
@@ -160,6 +166,7 @@ export const InventoryView: React.FC = () => {
     setEditCategory(item.category || 'Coffee Beans');
     setEditUnit(item.unit || 'g');
     setEditCost(String(item.unitCost || 0));
+    setEditExpiration(item.expirationDate || '');
     setEditSupplier(item.supplierName || '');
     setEditCritical(String(item.criticalLevel || 10));
   };
@@ -176,6 +183,7 @@ export const InventoryView: React.FC = () => {
           category: editCategory,
           unit: editUnit,
           unitCost: Number(editCost),
+          expirationDate: editExpiration || null,
           supplierName: editSupplier,
           criticalLevel: Number(editCritical)
         })
@@ -321,11 +329,13 @@ export const InventoryView: React.FC = () => {
           </thead>
           <tbody>
             {filteredItems.map(item => {
+              const outOfStock = item.currentStock <= 0;
+              const needsAttention = outOfStock || item.isLowStock;
               const itemValuation = item.currentStock * (item.unitCost || 0);
 
               return (
                 <tr key={item.id}>
-                  <td style={{ fontWeight: 800, color: 'var(--text)' }}>{item.name}</td>
+                  <td style={{ fontWeight: 800, color: 'var(--text)' }}>{item.name}{item.expirationDate && <small style={{ display: 'block', color: 'var(--text-2)' }}>Expiration: {item.expirationDate}</small>}</td>
                   <td>
                     <span style={{ background: 'var(--orange-bg)', color: 'var(--brand)', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
                       {item.category || 'General'}
@@ -333,7 +343,7 @@ export const InventoryView: React.FC = () => {
                   </td>
                   <td style={{ color: 'var(--text-2)' }}>{item.supplierName || 'General Supplier'}</td>
                   <td style={{ fontWeight: 700, color: 'var(--text)' }}>₱{item.unitCost || 0} / {item.unit}</td>
-                  <td style={{ fontWeight: 800, color: item.isLowStock ? 'var(--red)' : 'var(--text)' }}>
+                  <td style={{ fontWeight: 800, color: needsAttention ? 'var(--red)' : 'var(--text)' }}>
                     {item.currentStock} {item.unit}
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-3)', display: 'block', fontWeight: 500 }}>Critical: {item.criticalLevel} {item.unit}</span>
                   </td>
@@ -347,13 +357,13 @@ export const InventoryView: React.FC = () => {
                       borderRadius: '12px',
                       fontSize: '0.75rem',
                       fontWeight: 800,
-                      background: item.isLowStock ? 'var(--red-bg)' : 'var(--green-bg)',
-                      color: item.isLowStock ? 'var(--red)' : 'var(--green)'
+                      background: needsAttention ? 'var(--red-bg)' : 'var(--green-bg)',
+                      color: needsAttention ? 'var(--red)' : 'var(--green)'
                     }}>
-                      {item.isLowStock ? (
+                      {needsAttention ? (
                         <>
                           <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '0.75rem' }}></i>
-                          Low Stock
+                          {outOfStock ? 'Out of Stock' : 'Low Stock'}
                         </>
                       ) : (
                         <>
@@ -567,7 +577,8 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <div className="form-group"><label className="form-label" htmlFor="newExpiration">Expiration Date (optional)</label><input id="newExpiration" className="form-input" type="date" value={newExpiration} onChange={e => setNewExpiration(e.target.value)} /><small>Expired after this date, Philippine time. Update when replacing stock.</small></div>
+<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>
                   Cancel
                 </button>
@@ -668,7 +679,8 @@ export const InventoryView: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <div className="form-group"><label className="form-label" htmlFor="editExpiration">Expiration Date (optional)</label><input id="editExpiration" className="form-input" type="date" value={editExpiration} onChange={e => setEditExpiration(e.target.value)} /><small>Expired after this date, Philippine time. Update when replacing stock.</small></div>
+<div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn-outline" onClick={() => setEditModalItem(null)}>
                   Cancel
                 </button>
