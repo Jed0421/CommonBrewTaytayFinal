@@ -1738,7 +1738,10 @@ app.post('/api/auth/verify-otp', otpVerifyLimiter, (req, res) => {
 
 app.post('/api/auth/register-customer', (req, res) => {
   const { fullName, username, email, phone, otp, password, address, defaultAddress } = req.body;
-  const userAddress = (address || defaultAddress || '').trim();
+  const userAddress = typeof address === 'string' && address.trim() ? address.trim() : (typeof defaultAddress === 'string' ? defaultAddress.trim() : '');
+  if (!userAddress || typeof phone !== 'string' || !/^\+639[0-9]{9}$/.test(phone.trim())) {
+    return res.status(400).json({ success: false, message: 'A valid Philippine mobile number (+63 followed by 10 digits starting with 9) and delivery address are required.' });
+  }
 
   if (!fullName || !username || !email || !password) {
     return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });

@@ -285,6 +285,14 @@ export const AccessPortalModal: React.FC<Props> = ({
   const handleCustomerRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     resetMessages();
+    if (!/^9[0-9]{9}$/.test(regPhone)) {
+      setErrorMsg('Enter a 10-digit Philippine mobile number starting with 9.');
+      return;
+    }
+    if (!regAddress.trim()) {
+      setErrorMsg('Please enter your default delivery address.');
+      return;
+    }
 
     if (regEmailError) {
       setErrorMsg('Email is already used');
@@ -1057,7 +1065,7 @@ export const AccessPortalModal: React.FC<Props> = ({
                     marginBottom: '0.35rem',
                   }}
                 >
-                  MOBILE NUMBER
+                  MOBILE NUMBER *
                 </label>
                 <div style={{ display: 'flex', alignItems: 'center', border: '2px solid #9ca3af', borderRadius: '12px', background: '#fafafa', overflow: 'hidden' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', borderRight: '1px solid #d1d5db', flexShrink: 0, color: '#374151' }}>
@@ -1075,6 +1083,7 @@ export const AccessPortalModal: React.FC<Props> = ({
                   </span>
                   <input
                     id="registration-mobile"
+                    required
                     aria-label="Philippine mobile number, 10 digits without country code"
                     aria-describedby="registration-mobile-help"
                     type="tel"
@@ -1106,10 +1115,11 @@ export const AccessPortalModal: React.FC<Props> = ({
                     marginBottom: '0.35rem',
                   }}
                 >
-                  DEFAULT DELIVERY ADDRESS
+                  DEFAULT DELIVERY ADDRESS *
                 </label>
                 <input
                   type="text"
+                  required
                   value={regAddress}
                   onChange={(e) => setRegAddress(e.target.value)}
                   placeholder="Unit / House No., Street, Barangay, City"
