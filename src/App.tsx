@@ -18,12 +18,20 @@ export const App: React.FC = () => {
   const [mode, setMode] = useState<'customer' | 'staff'>('customer');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const canAccess = (view: string) => (currentUser?.role === 'Administrator' ? ['archive','settings'] : currentUser?.role === 'Manager' ? ['pos','dashboard','inventory','reports','products'] : currentUser?.role === 'Cashier' ? ['pos','reports'] : []).includes(view);
   const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'products' | 'reports' | 'archive' | 'settings'>('pos');
   const [timeString, setTimeString] = useState('');
   const [lowStockCount, setLowStockCount] = useState(0);
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [forcedSignOutNotice, setForcedSignOutNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentUser && !canAccess(currentView)) {
+      setCurrentView(currentUser.role === 'Administrator' ? 'settings' : currentUser.role === 'Manager' ? 'dashboard' : 'pos');
+      setIsBotOpen(false);
+    }
+  }, [currentUser?.role, currentView]);
 
   // Check auth session & theme
   useEffect(() => {
@@ -67,7 +75,7 @@ export const App: React.FC = () => {
         const user = await res.json();
         setCurrentUser(user);
         setMode('staff');
-        if (user.role === 'Cashier') setCurrentView('pos');
+        setCurrentView(user.role === 'Administrator' ? 'settings' : user.role === 'Manager' ? 'dashboard' : 'pos');
       } else {
         localStorage.removeItem('commonbrew_staff_token');
         setCurrentUser(null);
@@ -93,7 +101,7 @@ export const App: React.FC = () => {
 
   // Fetch low stock count periodically
   useEffect(() => {
-    if (!currentUser) return;
+    if (currentUser?.role !== 'Manager') return;
     const fetchNotifs = async () => {
       try {
         const res = await fetch('/api/inventory');
@@ -115,7 +123,7 @@ export const App: React.FC = () => {
 
   // Realtime notification update when inventory changes in Supabase
   useRealtimeSync(['inventory'], () => {
-    if (!currentUser) return;
+    if (currentUser?.role !== 'Manager') return;
     fetch('/api/inventory')
       .then(res => res.json())
       .then(items => {
@@ -239,7 +247,7 @@ export const App: React.FC = () => {
           if (token) localStorage.setItem('commonbrew_staff_token', token);
           setCurrentUser(user);
           setMode('staff');
-          setCurrentView(user.role === 'Cashier' ? 'pos' : 'dashboard');
+          setCurrentView(user.role === 'Administrator' ? 'settings' : user.role === 'Manager' ? 'dashboard' : 'pos');
         }}
       />
       </>
@@ -254,7 +262,7 @@ export const App: React.FC = () => {
           onLoginSuccess={(u, token) => {
             if (token) localStorage.setItem('commonbrew_staff_token', token);
             setCurrentUser(u);
-            setCurrentView(u.role === 'Cashier' ? 'pos' : 'dashboard');
+            setCurrentView(u.role === 'Administrator' ? 'settings' : u.role === 'Manager' ? 'dashboard' : 'pos');
           }}
           onCustomerLoginSuccess={(cust, token) => {
             if (token) localStorage.setItem('commonbrew_customer_token', token);
@@ -298,83 +306,7 @@ export const App: React.FC = () => {
 
         <nav className="sidebar-menu">
           <p className="menu-label">MAIN NAVIGATION</p>
-          <ul className="nav-list">
-            <li>
-              <button
-                className={`nav-link ${currentView === 'pos' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('pos'); setIsMobileNavOpen(false); }}
-              >
-                <i className="fa-solid fa-calculator icon"></i>
-                <span>Point of Sale</span>
-              </button>
-            </li>
-
-            {currentUser?.role === 'Administrator' && (
-              <li>
-                <button
-                  className={`nav-link ${currentView === 'dashboard' ? 'active' : ''}`}
-                  onClick={() => { setCurrentView('dashboard'); setIsMobileNavOpen(false); }}
-                >
-                  <i className="fa-solid fa-chart-line icon"></i>
-                  <span>Dashboard</span>
-                </button>
-              </li>
-            )}
-
-            <li>
-              <button
-                className={`nav-link ${currentView === 'inventory' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('inventory'); setIsMobileNavOpen(false); }}
-              >
-                <i className="fa-solid fa-boxes-stacked icon"></i>
-                <span>Raw Materials</span>
-              </button>
-            </li>
-
-            <li>
-              <button
-                className={`nav-link ${currentView === 'reports' ? 'active' : ''}`}
-                onClick={() => { setCurrentView('reports'); setIsMobileNavOpen(false); }}
-              >
-                <i className="fa-solid fa-file-invoice-dollar icon"></i>
-                <span>Sales Reports</span>
-              </button>
-            </li>
-
-            {currentUser?.role === 'Administrator' && (
-              <>
-                <li>
-                  <button
-                    className={`nav-link ${currentView === 'products' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('products'); setIsMobileNavOpen(false); }}
-                  >
-                    <i className="fa-solid fa-mug-hot icon"></i>
-                    <span>Products Menu</span>
-                  </button>
-                </li>
-
-                <li>
-                  <button
-                    className={`nav-link ${currentView === 'archive' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('archive'); setIsMobileNavOpen(false); }}
-                  >
-                    <i className="fa-solid fa-box-archive icon"></i>
-                    <span>Archive</span>
-                  </button>
-                </li>
-
-                <li>
-                  <button
-                    className={`nav-link ${currentView === 'settings' ? 'active' : ''}`}
-                    onClick={() => { setCurrentView('settings'); setIsMobileNavOpen(false); }}
-                  >
-                    <i className="fa-solid fa-gear icon"></i>
-                    <span>Settings</span>
-                  </button>
-                </li>
-              </>
-            )}
-          </ul>
+          <ul className="nav-list">{([{id:'pos',label:'Point of Sale'},{id:'dashboard',label:'Dashboard'},{id:'inventory',label:'Raw Materials'},{id:'reports',label:'Sales Reports'},{id:'products',label:'Products Menu'},{id:'archive',label:'Archive'},{id:'settings',label:'Settings'}] as const).filter(v => canAccess(v.id)).map(v => <li key={v.id}><button className={'nav-link ' + (currentView === v.id ? 'active' : '')} onClick={() => {setCurrentView(v.id);setIsMobileNavOpen(false);}}>{v.label}</button></li>)}</ul>
         </nav>
 
         <div className="sidebar-footer">
@@ -428,14 +360,15 @@ export const App: React.FC = () => {
             <button
               className="notif-btn"
               title="Low Stock Alerts"
-              onClick={() => setCurrentView('inventory')}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              hidden={!canAccess('inventory')}
+              onClick={() => { if (canAccess('inventory')) setCurrentView('inventory'); }}
+              style={{ display: canAccess('inventory') ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}
             >
               <Bell size={18} />
               {lowStockCount > 0 && <span className="notif-badge">{lowStockCount}</span>}
             </button>
 
-            {currentUser?.role === 'Administrator' && (
+            {currentUser?.role === 'Manager' && (
               <button className="ai-btn" onClick={() => setIsBotOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', padding: '0.35rem 0.65rem' }}>
                 <img
                   src="/commonbot-avatar.jpg"
@@ -457,13 +390,13 @@ export const App: React.FC = () => {
 
         {/* View Content */}
         <main className="page-content">
-          {currentView === 'pos' && <POSView />}
-          {currentView === 'dashboard' && <DashboardView />}
-          {currentView === 'inventory' && <InventoryView />}
-          {currentView === 'products' && <ProductsView />}
-          {currentView === 'reports' && <ReportsView />}
-          {currentView === 'archive' && <ArchiveView />}
-          {currentView === 'settings' && (
+          {canAccess(currentView) && currentView === 'pos' && <POSView />}
+          {canAccess(currentView) && currentView === 'dashboard' && <DashboardView />}
+          {canAccess(currentView) && currentView === 'inventory' && <InventoryView />}
+          {canAccess(currentView) && currentView === 'products' && <ProductsView />}
+          {canAccess(currentView) && currentView === 'reports' && <ReportsView />}
+          {canAccess(currentView) && currentView === 'archive' && <ArchiveView />}
+          {canAccess(currentView) && currentView === 'settings' && (
             <SettingsView
               currentUser={currentUser}
               onUserUpdated={(updatedUser) => {

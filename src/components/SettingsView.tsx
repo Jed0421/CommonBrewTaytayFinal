@@ -44,6 +44,8 @@ interface SettingsViewProps {
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedInUser, onUserUpdated }) => {
+  const [staffRole, setStaffRole] = useState<'Cashier' | 'Manager'>('Cashier');
+  const [editRole, setEditRole] = useState<'Cashier' | 'Manager'>('Cashier');
   const [users, setUsers] = useState<User[]>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [legalModalTab, setLegalModalTab] = useState<'terms' | 'privacy' | null>(null);
@@ -337,7 +339,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
           phone: contactNumber ? `+63${contactNumber}` : '',
           email: email.trim(),
           password,
-          role: 'Cashier'
+          role: staffRole
         })
       });
       const data = await res.json();
@@ -346,7 +348,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
         fetchUsers();
         setNotification({
           type: 'success',
-          message: `Cashier staff member "${fullName}" created successfully!`
+          message: `${staffRole} staff member "${fullName}" created successfully!`
         });
       } else {
         setOtpError(data.message || 'Error creating user');
@@ -361,6 +363,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
   // Open Edit Modal
   const openEditModal = (u: User) => {
     setEditingUser(u);
+    setEditRole(u.role === 'Manager' ? 'Manager' : 'Cashier');
     setEditFullName(u.fullName || '');
     setEditUsername(u.username || '');
     setEditContactNumber(staffPhoneDigits(u.phone || ''));
@@ -498,7 +501,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
           contactNumber: editContactNumber ? `+63${editContactNumber}` : '',
           phone: editContactNumber ? `+63${editContactNumber}` : '',
           email: editEmail.trim(),
-          role: editingUser.role === 'Administrator' ? 'Administrator' : 'Cashier',
+          role: editingUser.role === 'Administrator' ? 'Administrator' : editRole,
           password: editNewPassword.trim() ? editNewPassword.trim() : undefined
         })
       });
@@ -563,7 +566,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
       } else {
         setNotification({
           type: 'success',
-          message: `Cashier account "${userToDeactivate.fullName || userToDeactivate.username}" has been deactivated and moved to the Archive Module.`
+          message: `Staff account "${userToDeactivate.fullName || userToDeactivate.username}" has been deactivated and moved to the Archive Module.`
         });
         setUserToDeactivate(null);
         await fetchUsers();
@@ -619,7 +622,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
       <div className="settings-layout">
         <div className="table-card">
           <div className="table-header-row">
-            <h2 className="card-title" style={{ margin: 0 }}>Active Cashier & Admin Users</h2>
+            <h2 className="card-title" style={{ margin: 0 }}>Active Staff Users</h2>
             <span className="record-count">{activeUsers.length} Users</span>
           </div>
 
@@ -726,7 +729,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
             <div className="form-group">
               <label className="form-label">Administrator Account Policy</label>
               <div style={{ fontSize: '0.8rem', color: '#64748b', background: '#f8fafc', padding: '0.65rem 0.85rem', borderRadius: '8px', border: '1px solid #e2e8f0', lineHeight: 1.4 }}>
-                CommonBrew enforces a single Administrator policy. All additional staff users are granted Cashier permissions.
+                CommonBrew enforces a single Administrator policy. Additional staff can be Managers or Cashiers.
               </div>
             </div>
 
@@ -893,7 +896,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
                 />
               </div>
 
-              {/* Contact Number */}
+              <label className="form-label">Role</label><select className="form-select" value={staffRole} onChange={e => setStaffRole(e.target.value as 'Cashier' | 'Manager')}><option>Cashier</option><option>Manager</option></select>{/* Contact Number */}
               <div className="form-group" style={{ marginBottom: '0.9rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Phone size={14} color="#059669" /> Contact Number
@@ -1386,7 +1389,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ currentUser: loggedI
                 )}
               </div>
 
-              {/* Role (Read-only badge since CommonBrew has exactly 1 Administrator) */}
+              {editingUser.role !== 'Administrator' && <><label className="form-label">Staff Role</label><select className="form-select" value={editRole} onChange={e => setEditRole(e.target.value as 'Cashier' | 'Manager')}><option>Cashier</option><option>Manager</option></select></>}{/* Role (Read-only badge since CommonBrew has exactly 1 Administrator) */}
               <div className="form-group" style={{ marginBottom: '0.9rem' }}>
                 <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '0.35rem' }}>
                   Role

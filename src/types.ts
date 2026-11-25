@@ -4,7 +4,7 @@ export interface User {
   username: string;
   email?: string;
   phone?: string;
-  role: 'Administrator' | 'Cashier' | 'Customer';
+  role: 'Administrator' | 'Manager' | 'Cashier' | 'Customer';
   isActive: boolean;
   createdAt?: string;
   address?: string;

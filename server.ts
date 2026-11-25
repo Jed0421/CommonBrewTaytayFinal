@@ -109,7 +109,7 @@ interface UserRecord {
   email?: string;
   phone?: string;
   passwordHash: string;
-  role: 'Administrator' | 'Cashier';
+  role: 'Administrator' | 'Manager' | 'Cashier';
   isActive: boolean;
   createdAt: string;
 }
@@ -740,6 +740,14 @@ const requireStaff: express.RequestHandler = (req, res, next) => {
   next();
 };
 
+const requireRoles = (...roles: string[]): express.RequestHandler => (req, res, next) => {
+ const user = getStaffUserFromRequest(req);
+ if (!user || !user.isActive) return res.status(401).json({success:false,message:'Please sign in.'});
+ if (!roles.includes(user.role)) return res.status(403).json({success:false,message:'Your role cannot access this module.'});
+ next();
+};
+const requireManager = requireRoles('Manager');
+const requireOperations = requireRoles('Manager', 'Cashier');
 const requireAdmin: express.RequestHandler = (req, res, next) => {
   const user = getStaffUserFromRequest(req);
   if (!user) {
@@ -1965,7 +1973,7 @@ app.put('/api/store-info', requireAdmin, async (req, res) => {
 });
 
 // ── ONLINE ORDERING ROUTES ──────────────────────────────────
-app.get('/api/online-orders', requireStaff, async (req, res) => {
+app.get('/api/online-orders', requireOperations, async (req, res) => {
   const { status } = req.query;
   let list = [...onlineOrders];
   if (status && status !== 'all') {
@@ -2146,7 +2154,7 @@ app.post('/api/online-orders/create', async (req, res) => {
   });
 });
 
-app.post('/api/online-orders/update-status', requireStaff, async (req, res) => {
+app.post('/api/online-orders/update-status', requireOperations, async (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { orderId, status, cancelReason } = req.body;
   console.log('[Cancel Debug]', { orderId, status, cancelReason });
@@ -2478,12 +2486,12 @@ app.get('/api/products', (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/products/all', requireAdmin, (req, res) => {
+app.get('/api/products/all', requireRoles('Administrator', 'Manager'), (req, res) => {
   const enriched = products.map(enrichProductWithStock);
   res.json(enriched);
 });
 
-app.post('/api/products', requireAdmin, (req, res) => {
+app.post('/api/products', requireManager, (req, res) => {
   const { name, categoryId, price, imageUrl, productType, upsizePrice, recipes, upsizeRecipes } = req.body;
 
   const newProd: ProductRecord = {
@@ -2532,7 +2540,7 @@ app.post('/api/products', requireAdmin, (req, res) => {
   res.json({ success: true, product: newProd });
 });
 
-app.put('/api/products/:id', requireAdmin, (req, res) => {
+app.put('/api/products/:id', requireManager, (req, res) => {
   const { id } = req.params;
   const pIndex = products.findIndex(p => p.id === id);
   if (pIndex === -1) return res.status(404).json({ error: 'Product not found' });
@@ -2588,7 +2596,7 @@ app.put('/api/products/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-app.delete('/api/products/:id', requireAdmin, (req, res) => {
+app.delete('/api/products/:id', requireManager, (req, res) => {
   const { id } = req.params;
   const p = products.find(p => p.id === id);
   if (p) p.isAvailable = false;
@@ -2605,7 +2613,7 @@ app.post('/api/products/:id/restore', requireAdmin, (req, res) => {
 });
 
 // POS Transaction Handler
-app.post('/api/pos/transaction', requireStaff, (req, res) => {
+app.post('/api/pos/transaction', requireOperations, (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { paymentMethod, cashTendered, items } = req.body;
 
@@ -2698,7 +2706,7 @@ app.post('/api/pos/transaction', requireStaff, (req, res) => {
 });
 
 // Dashboard Analytics
-app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
+app.get('/api/dashboard/analytics', requireManager, (req, res) => {
   const oneDay = 86400000;
   const dateKey = (timestamp: number): string => {
     const parts = new Intl.DateTimeFormat('en-US', {
@@ -2788,7 +2796,7 @@ app.get('/api/dashboard/analytics', requireAdmin, (req, res) => {
 });
 
 // Inventory Routes
-app.get('/api/inventory', requireStaff, (req, res) => {
+app.get('/api/inventory', requireManager, (req, res) => {
   const { category } = req.query;
   let list = inventory.filter(i => !i.isArchived);
   if (category && category !== 'all') {
@@ -2815,7 +2823,7 @@ app.get('/api/inventory', requireStaff, (req, res) => {
   res.json(enriched);
 });
 
-app.get('/api/inventory/logs', requireStaff, (req, res) => {
+app.get('/api/inventory/logs', requireManager, (req, res) => {
   const enriched = inventoryLogs.map(l => {
     const inv = inventory.find(i => i.id === l.inventoryItemId);
     return {
@@ -2829,7 +2837,7 @@ app.get('/api/inventory/logs', requireStaff, (req, res) => {
   res.json(enriched);
 });
 
-app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
+app.post('/api/inventory/add-stock', requireManager, (req, res) => {
   const { itemId, quantity, note, changeType } = req.body;
   const item = inventory.find(i => i.id === itemId);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -2871,7 +2879,7 @@ app.post('/api/inventory/add-stock', requireStaff, (req, res) => {
   res.json({ success: true, newStock: item.currentStock });
 });
 
-app.post('/api/inventory/create', requireStaff, async (req, res) => {
+app.post('/api/inventory/create', requireManager, async (req, res) => {
   const staffUser = getStaffUserFromRequest(req);
   const { name, unit, currentStock, criticalLevel, category, unitCost, supplierName, expirationDate } = req.body;
   if (expirationDate && (!/^\d{4}-\d{2}-\d{2}$/.test(expirationDate) || !Number.isFinite(Date.parse(expirationDate)) || new Date(expirationDate).toISOString().slice(0, 10) !== expirationDate)) {
@@ -2935,7 +2943,7 @@ app.post('/api/inventory/create', requireStaff, async (req, res) => {
   res.json({ success: true, item: newItem });
 });
 
-app.put('/api/inventory/:id', requireStaff, async (req, res) => {
+app.put('/api/inventory/:id', requireManager, async (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
@@ -2985,7 +2993,7 @@ app.put('/api/inventory/:id', requireStaff, async (req, res) => {
   res.json({ success: true, item });
 });
 
-app.delete('/api/inventory/:id', requireStaff, (req, res) => {
+app.delete('/api/inventory/:id', requireManager, (req, res) => {
   const { id } = req.params;
   const item = inventory.find(i => i.id === id);
   if (item) {
@@ -2995,7 +3003,7 @@ app.delete('/api/inventory/:id', requireStaff, (req, res) => {
 });
 
 // Reports Routes
-app.get('/api/reports/transactions', requireStaff, (req, res) => {
+app.get('/api/reports/transactions', requireOperations, (req, res) => {
   const { from, to } = req.query;
 
   let filtered = [...transactions];
@@ -3011,7 +3019,7 @@ app.get('/api/reports/transactions', requireStaff, (req, res) => {
 });
 
 // Void Transaction / Cancel punched order endpoint
-app.post('/api/reports/transactions/:id/void', requireStaff, (req, res) => {
+app.post('/api/reports/transactions/:id/void', requireOperations, (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
@@ -3136,7 +3144,7 @@ app.post('/api/users/create', requireAdmin, (req, res) => {
     email: cleanEmail || undefined,
     phone: resolvedPhone || undefined,
     passwordHash: bcrypt.hashSync(password, 10),
-    role: 'Cashier',
+    role: role === 'Manager' ? 'Manager' : 'Cashier',
     isActive: true,
     createdAt: new Date().toISOString()
   };
@@ -3197,6 +3205,8 @@ app.put('/api/users/:id', requireAdmin, (req, res) => {
     u.phone = trimmedPhone || undefined;
   }
 
+  if (role && !['Administrator','Manager','Cashier'].includes(role)) return res.status(400).json({success:false,message:'Invalid staff role.'});
+  if (u.role !== 'Administrator' && (role === 'Manager' || role === 'Cashier')) u.role = role;
   // Only the original Administrator can retain the Administrator role; cashiers cannot be promoted to admin
   if (role && u.role !== 'Administrator' && role === 'Administrator') {
     return res.status(400).json({ success: false, message: 'CommonBrew has only 1 Administrator account. Additional administrators cannot be created.' });
@@ -3322,7 +3332,7 @@ async function generateAIChatResponse(
 }
 
 // AI Chatbot Route (CommonBot POS & Staff Assistant - Resilient Multi-Turn Support)
-app.post('/api/chatbot/ask', chatbotLimiter, requireStaff, async (req, res) => {
+app.post('/api/chatbot/ask', chatbotLimiter, requireManager, async (req, res) => {
   const { question, history, messages: reqMessages } = req.body;
   const staffUser = getStaffUserFromRequest(req);
   const userName = staffUser?.fullName || 'Barista / Admin';
