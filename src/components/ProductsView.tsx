@@ -55,6 +55,7 @@ export const ProductsView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [productType, setProductType] = useState<'Drink' | 'Food'>('Drink');
+  const [oneSizedDrink, setOneSizedDrink] = useState(false);
   const [upsizePrice, setUpsizePrice] = useState('130');
   const [upsizeRecipeItems, setUpsizeRecipeItems] = useState<{ inventoryItemId: string; quantity: number }[]>([]);
   const [recipeSize, setRecipeSize] = useState<'16oz' | '22oz'>('16oz');
@@ -175,6 +176,7 @@ export const ProductsView: React.FC = () => {
     setImportedFileName('');
     if (fileInputRef.current) fileInputRef.current.value = '';
     setProductType('Drink');
+    setOneSizedDrink(false);
     setUpsizePrice('130');
     setUpsizeRecipeItems([]);
     setRecipeItems([{ inventoryItemId: inventory[0]?.id || '', quantity: 18 }]);
@@ -193,14 +195,15 @@ export const ProductsView: React.FC = () => {
     setImportedFileName(p.imageUrl?.startsWith('data:') ? 'Imported Image' : '');
     if (fileInputRef.current) fileInputRef.current.value = '';
     setProductType(p.productType);
+    setOneSizedDrink(p.productType === 'Drink' && !p.upsizePrice);
     setUpsizePrice(p.upsizePrice ? p.upsizePrice.toString() : '');
     setUpsizeRecipeItems((p.upsizeRecipes || []).map(r => ({ inventoryItemId: r.inventoryItemId, quantity: r.quantity })));
     setRecipeItems(p.recipes ? p.recipes.map(r => ({ inventoryItemId: r.inventoryItemId, quantity: r.quantity })) : []);
     setShowModal(true);
   };
 
-  const activeRecipeItems = productType === 'Drink' && recipeSize === '22oz' ? upsizeRecipeItems : recipeItems;
-  const setActiveRecipeItems = productType === 'Drink' && recipeSize === '22oz' ? setUpsizeRecipeItems : setRecipeItems;
+  const activeRecipeItems = productType === 'Drink' && !oneSizedDrink && recipeSize === '22oz' ? upsizeRecipeItems : recipeItems;
+  const setActiveRecipeItems = productType === 'Drink' && !oneSizedDrink && recipeSize === '22oz' ? setUpsizeRecipeItems : setRecipeItems;
 
   const handleAddRecipeRow = () => {
     if (inventory.length === 0) return;
@@ -214,12 +217,12 @@ export const ProductsView: React.FC = () => {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (productType === 'Drink' && Number(upsizePrice) > 0 && upsizeRecipeItems.length === 0) {
+    if (productType === 'Drink' && !oneSizedDrink && Number(upsizePrice) > 0 && upsizeRecipeItems.length === 0) {
       alert('Add the full 22oz recipe before saving a drink with a 22oz price.');
       setRecipeSize('22oz');
       return;
     }
-    if ([...recipeItems, ...(productType === 'Drink' ? upsizeRecipeItems : [])].some(r => !r.inventoryItemId || !Number.isFinite(r.quantity) || r.quantity <= 0)) {
+    if ([...recipeItems, ...(productType === 'Drink' && !oneSizedDrink ? upsizeRecipeItems : [])].some(r => !r.inventoryItemId || !Number.isFinite(r.quantity) || r.quantity <= 0)) {
       alert('Choose an ingredient and enter a quantity greater than zero for every recipe row.');
       return;
     }
@@ -230,9 +233,9 @@ export const ProductsView: React.FC = () => {
       price: Number(price),
       imageUrl,
       productType,
-      upsizePrice: upsizePrice ? Number(upsizePrice) : null,
+      upsizePrice: productType === 'Drink' && !oneSizedDrink && upsizePrice ? Number(upsizePrice) : null,
       recipes: recipeItems,
-      upsizeRecipes: productType === 'Drink' ? upsizeRecipeItems : []
+      upsizeRecipes: productType === 'Drink' && !oneSizedDrink ? upsizeRecipeItems : []
     };
 
     try {
@@ -562,7 +565,7 @@ export const ProductsView: React.FC = () => {
                   />
                 </div>
 
-                {productType === 'Drink' && (
+                {productType === 'Drink' && !oneSizedDrink && (
                   <div className="form-group">
                     <label className="form-label">22oz Upsize Price (₱)</label>
                     <input
@@ -781,8 +784,13 @@ export const ProductsView: React.FC = () => {
                 )}
               </div>
 
+              {productType === 'Drink' && <div style={{ marginTop: '1rem' }}>
+                <button type="button" className={oneSizedDrink ? 'btn-primary' : 'btn-outline'} aria-pressed={oneSizedDrink}
+                  onClick={() => { setOneSizedDrink(!oneSizedDrink); setRecipeSize('16oz'); }}>One Sized Drink</button>
+                {oneSizedDrink && <p style={{ fontSize: '0.8rem', color: 'var(--text-2)', marginTop: '0.5rem' }}>One price and one recipe. No 22oz upgrade.</p>}
+              </div>}
               {/* Recipe builder */}
-              {productType === 'Drink' && (
+              {productType === 'Drink' && !oneSizedDrink && (
                 <div style={{ marginTop: '1rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {(['16oz', '22oz'] as const).map(size => (
@@ -794,7 +802,7 @@ export const ProductsView: React.FC = () => {
               )}
               <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <label className="form-label" style={{ margin: 0 }}>{productType === 'Drink' ? recipeSize + ' Recipe Ingredients' : 'Recipe Ingredients Mapping'}</label>
+                  <label className="form-label" style={{ margin: 0 }}>{productType === 'Drink' ? (oneSizedDrink ? 'Recipe Ingredients' : recipeSize + ' Recipe Ingredients') : 'Recipe Ingredients Mapping'}</label>
                   <button type="button" className="btn-outline btn-sm" onClick={handleAddRecipeRow}>
                     + Ingredient
                   </button>
