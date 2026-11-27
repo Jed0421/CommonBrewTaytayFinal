@@ -6,14 +6,16 @@ export function philippineDate(now = new Date()) {
   return new Date(now.getTime() + 8 * 3600000).toISOString().slice(0, 10);
 }
 export function isExpired(date: string | null, today = philippineDate()) {
-  return Boolean(date && date < today);
+  return Boolean(date && date <= today);
 }
 export async function sendExpirationAlerts() {
   if (!supabase) return;
+  const { error: deductionError } = await supabase.rpc('deduct_expired_inventory');
+  if (deductionError) throw deductionError;
   const today = philippineDate();
   const { data: items, error } = await supabase.from('inventory')
     .select('id,name,expiration_date,current_stock,unit').eq('is_archived', false)
-    .eq('expiration_date_is_demo', false).gt('current_stock', 0).lt('expiration_date', today);
+    .eq('expiration_date_is_demo', false).lte('expiration_date', today);
   if (error) throw error;
   if (!items?.length) return;
   const { data: admins, error: adminError } = await supabase.from('users')

@@ -330,12 +330,13 @@ export const InventoryView: React.FC = () => {
           <tbody>
             {filteredItems.map(item => {
               const outOfStock = item.currentStock <= 0;
-              const needsAttention = outOfStock || item.isLowStock;
+              const expired = Boolean(item.expirationDate && item.expirationDate <= new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10));
+              const needsAttention = expired || outOfStock || item.isLowStock;
               const itemValuation = item.currentStock * (item.unitCost || 0);
 
               return (
                 <tr key={item.id}>
-                  <td style={{ fontWeight: 800, color: 'var(--text)' }}>{item.name}{item.expirationDate && <small style={{ display: 'block', color: 'var(--text-2)' }}>{item.expirationDateIsDemo ? 'Demo expiration (not verified)' : 'Expiration'}: {item.expirationDate}</small>}</td>
+                  <td style={{ fontWeight: 800, color: 'var(--text)' }}>{item.name}{item.expirationDate && <small style={{ display: 'block', color: 'var(--text-2)' }}>Expiration: {item.expirationDate}</small>}</td>
                   <td>
                     <span style={{ background: 'var(--orange-bg)', color: 'var(--brand)', padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700 }}>
                       {item.category || 'General'}
@@ -363,7 +364,7 @@ export const InventoryView: React.FC = () => {
                       {needsAttention ? (
                         <>
                           <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '0.75rem' }}></i>
-                          {outOfStock ? 'Out of Stock' : 'Low Stock'}
+                          {expired ? 'Expired' : outOfStock ? 'Out of Stock' : 'Low Stock'}
                         </>
                       ) : (
                         <>
@@ -577,7 +578,7 @@ export const InventoryView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="form-group"><label className="form-label" htmlFor="newExpiration">Expiration Date (optional)</label><input id="newExpiration" className="form-input" type="date" value={newExpiration} onChange={e => setNewExpiration(e.target.value)} /><small>Expired after this date, Philippine time. Update when replacing stock.</small></div>
+              <div className="form-group"><label className="form-label" htmlFor="newExpiration">Expiration Date (optional)</label><input id="newExpiration" className="form-input" type="date" value={newExpiration} onChange={e => setNewExpiration(e.target.value)} /><small>Expires on this date, Philippine time. Update when replacing stock.</small></div>
 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>
                   Cancel
@@ -679,7 +680,7 @@ export const InventoryView: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group"><label className="form-label" htmlFor="editExpiration">Expiration Date (optional)</label>{editModalItem?.expirationDateIsDemo && <p>Demo expiration date—not verified. Replace with a real label date before using this inventory operationally.</p>}<input id="editExpiration" className="form-input" type="date" value={editExpiration} onChange={e => setEditExpiration(e.target.value)} /><small>Expired after this date, Philippine time. Update when replacing stock.</small></div>
+              <div className="form-group"><label className="form-label" htmlFor="editExpiration">Expiration Date (optional)</label><input id="editExpiration" className="form-input" type="date" value={editExpiration} onChange={e => setEditExpiration(e.target.value)} /><small>Expires on this date, Philippine time. Update when replacing stock.</small></div>
 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                 <button type="button" className="btn-outline" onClick={() => setEditModalItem(null)}>
                   Cancel

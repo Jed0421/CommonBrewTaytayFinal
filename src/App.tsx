@@ -21,6 +21,7 @@ export const App: React.FC = () => {
   const canAccess = (view: string) => (currentUser?.role === 'Administrator' ? ['archive','settings'] : currentUser?.role === 'Manager' ? ['pos','dashboard','inventory','reports','products'] : currentUser?.role === 'Cashier' ? ['pos','reports'] : []).includes(view);
   const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'products' | 'reports' | 'archive' | 'settings'>('pos');
   const [timeString, setTimeString] = useState('');
+  const [expiredCount, setExpiredCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -108,7 +109,9 @@ export const App: React.FC = () => {
         if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
           const items = await res.json();
           if (Array.isArray(items)) {
-            const low = items.filter((i: any) => i.isLowStock).length;
+            const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+          setExpiredCount(items.filter((i: any) => i.expirationDate && i.expirationDate <= today).length);
+          const low = items.filter((i: any) => i.isLowStock).length;
             setLowStockCount(low);
           }
         }
@@ -128,6 +131,8 @@ export const App: React.FC = () => {
       .then(res => res.json())
       .then(items => {
         if (Array.isArray(items)) {
+          const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+          setExpiredCount(items.filter((i: any) => i.expirationDate && i.expirationDate <= today).length);
           const low = items.filter((i: any) => i.isLowStock).length;
           setLowStockCount(low);
         }
@@ -359,13 +364,13 @@ export const App: React.FC = () => {
           <div className="top-bar-actions">
             <button
               className="notif-btn"
-              title="Low Stock Alerts"
+              title={`${expiredCount} expired ingredients · ${lowStockCount} low-stock ingredients`}
               hidden={!canAccess('inventory')}
               onClick={() => { if (canAccess('inventory')) setCurrentView('inventory'); }}
               style={{ display: canAccess('inventory') ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}
             >
               <Bell size={18} />
-              {lowStockCount > 0 && <span className="notif-badge">{lowStockCount}</span>}
+              {(expiredCount > 0 || lowStockCount > 0) && <span className="notif-badge">{expiredCount > 0 ? `${expiredCount} expired` : lowStockCount}</span>}
             </button>
 
             {currentUser?.role === 'Manager' && (
