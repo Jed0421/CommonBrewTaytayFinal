@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InventoryItem } from '../types';
+import { inventoryStatus } from '../lib/inventoryWarnings';
 import { UnitComboBox } from './UnitComboBox';
 import { useRealtimeSync } from '../lib/realtimeSync';
 
@@ -201,7 +202,7 @@ export const InventoryView: React.FC = () => {
   };
 
   const todayPht = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
-  const statusOf = (item: InventoryItem) => item.expirationDate && item.expirationDate <= todayPht ? 'expired' : item.currentStock <= 0 ? 'out' : item.isLowStock ? 'low' : 'good';
+  const statusOf = (item: InventoryItem) => inventoryStatus(item, todayPht);
   const filteredItems = items.filter(i => {
     const matchesFilter = filter === 'all' || statusOf(i) === filter;
     const matchesCat = categoryFilter === 'all' || (i.category || 'General').toLowerCase() === categoryFilter.toLowerCase();

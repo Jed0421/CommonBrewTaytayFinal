@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from './types';
+import { countInventoryWarnings } from './lib/inventoryWarnings';
 import { LoginView } from './components/LoginView';
 import { POSView } from './components/POSView';
 import { DashboardView } from './components/DashboardView';
@@ -21,8 +22,7 @@ export const App: React.FC = () => {
   const canAccess = (view: string) => (currentUser?.role === 'Administrator' ? ['archive','settings'] : currentUser?.role === 'Manager' ? ['pos','dashboard','inventory','reports','products'] : currentUser?.role === 'Cashier' ? ['pos','reports'] : []).includes(view);
   const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'products' | 'reports' | 'archive' | 'settings'>('pos');
   const [timeString, setTimeString] = useState('');
-  const [expiredCount, setExpiredCount] = useState(0);
-  const [lowStockCount, setLowStockCount] = useState(0);
+  const [warnings, setWarnings] = useState(() => countInventoryWarnings([]));
   const [isBotOpen, setIsBotOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [forcedSignOutNotice, setForcedSignOutNotice] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch low stock count periodically
+  // Refresh all inventory warning counts periodically
   useEffect(() => {
     if (currentUser?.role !== 'Manager') return;
     const fetchNotifs = async () => {
@@ -109,10 +109,7 @@ export const App: React.FC = () => {
         if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
           const items = await res.json();
           if (Array.isArray(items)) {
-            const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
-          setExpiredCount(items.filter((i: any) => i.expirationDate && i.expirationDate <= today).length);
-          const low = items.filter((i: any) => i.isLowStock).length;
-            setLowStockCount(low);
+            setWarnings(countInventoryWarnings(items));
           }
         }
       } catch (e) {
@@ -131,10 +128,7 @@ export const App: React.FC = () => {
       .then(res => res.json())
       .then(items => {
         if (Array.isArray(items)) {
-          const today = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
-          setExpiredCount(items.filter((i: any) => i.expirationDate && i.expirationDate <= today).length);
-          const low = items.filter((i: any) => i.isLowStock).length;
-          setLowStockCount(low);
+          setWarnings(countInventoryWarnings(items));
         }
       })
       .catch(() => {});
@@ -364,13 +358,14 @@ export const App: React.FC = () => {
           <div className="top-bar-actions">
             <button
               className="notif-btn"
-              title={`${expiredCount} expired ingredients · ${lowStockCount} low-stock ingredients`}
+              title={`${warnings.total} warnings: ${warnings.low} low stock, ${warnings.expired} expired, ${warnings.out} out of stock`}
+              aria-label={`Inventory: ${warnings.total} warnings. ${warnings.low} low stock, ${warnings.expired} expired, ${warnings.out} out of stock. View raw materials.`}
               hidden={!canAccess('inventory')}
               onClick={() => { if (canAccess('inventory')) setCurrentView('inventory'); }}
               style={{ display: canAccess('inventory') ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}
             >
               <Bell size={18} />
-              {(expiredCount > 0 || lowStockCount > 0) && <span className="notif-badge">{expiredCount > 0 ? `${expiredCount} expired` : lowStockCount}</span>}
+              {warnings.total > 0 && <span className="notif-badge" aria-hidden="true">{warnings.total}</span>}
             </button>
 
             {currentUser?.role === 'Manager' && (
