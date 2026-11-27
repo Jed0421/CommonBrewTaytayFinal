@@ -17,7 +17,7 @@ interface InventoryLog {
 
 export const InventoryView: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [filter, setFilter] = useState<'all' | 'low'>('all');
+  const [filter, setFilter] = useState<'all' | 'low' | 'expired' | 'out'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
   
@@ -200,15 +200,19 @@ export const InventoryView: React.FC = () => {
     }
   };
 
+  const todayPht = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+  const statusOf = (item: InventoryItem) => item.expirationDate && item.expirationDate <= todayPht ? 'expired' : item.currentStock <= 0 ? 'out' : item.isLowStock ? 'low' : 'good';
   const filteredItems = items.filter(i => {
-    const matchesFilter = filter === 'all' || (filter === 'low' && i.isLowStock);
+    const matchesFilter = filter === 'all' || statusOf(i) === filter;
     const matchesCat = categoryFilter === 'all' || (i.category || 'General').toLowerCase() === categoryFilter.toLowerCase();
     const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || (i.supplierName || '').toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesCat && matchesSearch;
   });
 
   const totalValuation = items.reduce((sum, item) => sum + (item.currentStock * (item.unitCost || 0)), 0);
-  const lowStockCount = items.filter(i => i.isLowStock).length;
+  const lowStockCount = items.filter(i => statusOf(i) === 'low').length;
+  const expiredCount = items.filter(i => statusOf(i) === 'expired').length;
+  const outOfStockCount = items.filter(i => statusOf(i) === 'out').length;
 
   return (
     <div>
@@ -267,6 +271,17 @@ export const InventoryView: React.FC = () => {
             </h3>
           </div>
         </div>
+        {([{label: 'Expired Warnings', count: expiredCount, icon: 'fa-calendar-xmark'}, {label: 'Out of Stock Warnings', count: outOfStockCount, icon: 'fa-box-open'}]).map(warning => (
+          <div className="kpi-card" key={warning.label}>
+            <div className="kpi-icon-wrap red" style={{ color: 'var(--red)' }}><i className={'fa-solid ' + warning.icon} style={{ fontSize: '1.25rem' }} /></div>
+            <div className="kpi-info">
+              <p className="kpi-label" style={{ textTransform: 'uppercase', fontWeight: 700 }}>{warning.label}</p>
+              <h3 className="kpi-value" style={{ color: warning.count > 0 ? 'var(--red)' : 'var(--green)' }}>{warning.count}
+                {warning.count > 0 && <span style={{ fontSize: '0.85rem', fontWeight: 700, marginLeft: '0.4rem' }}><i className="fa-solid fa-triangle-exclamation" /> Action Needed</span>}
+              </h3>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Filters and Table */}
@@ -308,6 +323,8 @@ export const InventoryView: React.FC = () => {
             >
               <option value="all">All Stock Status</option>
               <option value="low">Low Stock Alerts Only</option>
+              <option value="expired">Expired Only</option>
+              <option value="out">Out of Stock Only</option>
             </select>
           </div>
 
